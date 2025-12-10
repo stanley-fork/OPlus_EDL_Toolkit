@@ -1,5 +1,4 @@
 ﻿mod gpt_parser;
-mod qdl;
 
 use quick_xml::de::from_str;
 use quick_xml::se::to_string;
@@ -354,9 +353,6 @@ fn update_port() -> (String, String) {
 
 #[tauri::command]
 fn reboot_to_system(app: AppHandle) {
-    let port = "\\.\\COM5".to_string();
-    let client = qdl::SaharaClient::new(Some(port));
-    /////
     let config = setup_env(&app);
     if config.is_connect == false {
         return ();
