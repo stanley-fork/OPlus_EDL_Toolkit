@@ -9,6 +9,7 @@
 
     const slotDialogRef = ref(null);
     const isDialogOpen = ref(false);
+    const isBuildIn = ref(false);
 
     const { t, locale, availableLocales } = useI18n();
 
@@ -330,7 +331,7 @@
         let loader = document.getElementById('loaderPathDisplay').value;
         let digest = document.getElementById('digestPathDisplay').value;
         let sig = document.getElementById('signPathDisplay').value;
-        await invoke("send_loader", { loader: loader, digest: digest, sig: sig });
+        await invoke("send_loader", { loader: loader, digest: digest, sig: sig, native: isBuildIn.value });
     }
 
     async function readPart() {
@@ -696,7 +697,7 @@ setInterval(updatePort, 1000);
                             <span>{{ t('operation.title') }}</span>
                         </div>
                         <div class="checkbox-group">
-                            <label><input type="checkbox">{{ t('operation.useBuildIn') }}</label>
+                            <label><input v-model="isBuildIn" type="checkbox">{{ t('operation.useBuildIn') }}</label>
                         </div>
                         <div class="radio-group">
                             <label><input type="radio" name="storage" checked> UFS</label>

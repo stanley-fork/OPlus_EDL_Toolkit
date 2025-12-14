@@ -1,4 +1,5 @@
 ﻿mod gpt_parser;
+mod qdl;
 
 use quick_xml::de::from_str;
 use quick_xml::se::to_string;
@@ -539,42 +540,52 @@ fn read_part(app: AppHandle, xml: &str)  -> String {
 }
 
 #[tauri::command]
-fn send_loader(app: AppHandle, loader: &str, digest: &str, sig: &str)  -> String {
+fn send_loader(app: AppHandle, loader: &str, digest: &str, sig: &str, native: bool)  -> String {
     let config = setup_env(&app);
     if config.is_connect == false {
         return format!("port not available");
     }
-    let loader_str = r"13:".to_owned() + loader;
-    let digest_str = r"--signeddigests=".to_owned() + digest;
-    let sig_str = r"--signeddigests=".to_owned() + sig;
-    let _ = app.emit("log_event", &format!("Send Loader..."));
-    let cmds = ["cmd", "/c", &config.sahara_server_path, "-p", &config.port_str, "-s", &loader_str];
-    exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
+    if native {
+        let (port_path, _port_info) = update_port();
+        let mut client = match qdl::SaharaClient::new(Some(port_path)) {
+            Ok(client) => client,
+            Err(_e) => return format!("Sahara connect error: {}", _e),
+        };
+        let _ = app.emit("log_event", &format!("Chip serial number: {}", client.get_chip_sn()));
+        let _ = app.emit("log_event", &format!("OEM Private Key hash: {}", client.get_oem_key_hash()));
+        client.send_loader(loader);
+    } else {
+        let loader_str = r"13:".to_owned() + loader;
+        let digest_str = r"--signeddigests=".to_owned() + digest;
+        let sig_str = r"--signeddigests=".to_owned() + sig;
+        let _ = app.emit("log_event", &format!("Send Loader..."));
+        let cmds = ["cmd", "/c", &config.sahara_server_path, "-p", &config.port_str, "-s", &loader_str];
+        exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
     
-    let _ = app.emit("log_event", &format!("Send Digest..."));
-    let cmds = ["cmd", "/c", &config.fh_loader_path, &config.port_conn_str, &digest_str, "--testvipimpact", "--noprompt", "--skip_configure", "--mainoutputdir=res"];
-    exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
+        let _ = app.emit("log_event", &format!("Send Digest..."));
+        let cmds = ["cmd", "/c", &config.fh_loader_path, &config.port_conn_str, &digest_str, "--testvipimpact", "--noprompt", "--skip_configure", "--mainoutputdir=res"];
+        exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
 
-    let _ = app.emit("log_event", &format!("Send Transfer Config..."));
-    let cmds = ["cmd", "/c", &config.fh_loader_path, &config.port_conn_str, "--sendxml=res/transfercfg.xml", "--noprompt", "--skip_configure", "--mainoutputdir=res"];
-    exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
+        let _ = app.emit("log_event", &format!("Send Transfer Config..."));
+        let cmds = ["cmd", "/c", &config.fh_loader_path, &config.port_conn_str, "--sendxml=res/transfercfg.xml", "--noprompt", "--skip_configure", "--mainoutputdir=res"];
+        exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
 
-    let _ = app.emit("log_event", &format!("Send Verify..."));
-    let cmds = ["cmd", "/c", &config.fh_loader_path, &config.port_conn_str, "--sendxml=res/verify.xml", "--noprompt", "--skip_configure", "--mainoutputdir=res"];
-    exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
+        let _ = app.emit("log_event", &format!("Send Verify..."));
+        let cmds = ["cmd", "/c", &config.fh_loader_path, &config.port_conn_str, "--sendxml=res/verify.xml", "--noprompt", "--skip_configure", "--mainoutputdir=res"];
+        exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
 
-    let _ = app.emit("log_event", &format!("Send Sig..."));
-    let cmds = ["cmd", "/c", &config.fh_loader_path, &config.port_conn_str, &sig_str, "--testvipimpact", "--noprompt", "--skip_configure", "--mainoutputdir=res"];
-    exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
+        let _ = app.emit("log_event", &format!("Send Sig..."));
+        let cmds = ["cmd", "/c", &config.fh_loader_path, &config.port_conn_str, &sig_str, "--testvipimpact", "--noprompt", "--skip_configure", "--mainoutputdir=res"];
+        exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
 
-    let _ = app.emit("log_event", &format!("Send SHA256 init..."));
-    let cmds = ["cmd", "/c", &config.fh_loader_path, &config.port_conn_str, "--sendxml=res/sha256init.xml", "--noprompt", "--skip_configure", "--mainoutputdir=res"];
-    exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
+        let _ = app.emit("log_event", &format!("Send SHA256 init..."));
+        let cmds = ["cmd", "/c", &config.fh_loader_path, &config.port_conn_str, "--sendxml=res/sha256init.xml", "--noprompt", "--skip_configure", "--mainoutputdir=res"];
+        exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
 
-    let _ = app.emit("log_event", &format!("Send Memory Config..."));
-    let cmds = ["cmd", "/c", &config.fh_loader_path, &config.port_conn_str, "--memoryname=ufs", "--sendxml=res/cfg.xml", "--search_path=res", "--noprompt", "--mainoutputdir=res"];
-    exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
-
+        let _ = app.emit("log_event", &format!("Send Memory Config..."));
+        let cmds = ["cmd", "/c", &config.fh_loader_path, &config.port_conn_str, "--memoryname=ufs", "--sendxml=res/cfg.xml", "--search_path=res", "--noprompt", "--mainoutputdir=res"];
+        exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
+    }
     format!("OK")
 }
 

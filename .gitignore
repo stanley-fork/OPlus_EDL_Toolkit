@@ -31,3 +31,8 @@ src-tauri/res/rawprogram*.xml
 src-tauri/res/devprg
 src-tauri/res/digest
 src-tauri/res/sig
+
+# img files
+src-tauri/img/*.bin
+src-tauri/img/*.img
+src-tauri/img/port_trace.txt
