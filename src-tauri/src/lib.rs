@@ -1,79 +1,15 @@
 ﻿mod file_util;
 mod gpt_parser;
 mod qdl;
+mod xml_file_util;
 
-use quick_xml::de::from_str;
-use quick_xml::se::to_string;
-use serde::{Deserialize, Serialize};
 use serialport::{available_ports, SerialPortType};
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use tauri::{AppHandle, Emitter};
-
-// Define struct for the root <data> node in XML
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
-#[serde(rename = "data")]  // Match the root node name in XML
-pub struct DataRoot {
-    // Match multiple <program> child nodes under <data>
-    #[serde(rename = "program", default)]
-    pub programs: Vec<Program>,
-    
-    // Match multiple <read> child nodes under <data>
-    #[serde(rename = "read", default)]
-    pub read_tags: Vec<ReadTag>,
-}
-
-// Define struct for the <program> node (matches all attributes)
-#[derive(Debug, Deserialize, Serialize, PartialEq, Clone)]
-#[serde(rename = "program")]
-pub struct Program {
-    #[serde(rename = "@start_sector")]
-    pub start_sector: u64,
-    #[serde(rename = "@size_in_KB")]
-    pub size_in_kb: f64,
-    #[serde(rename = "@physical_partition_number")]
-    pub physical_partition_number: u8,
-    #[serde(rename = "@partofsingleimage")]
-    pub part_of_single_image: bool,
-    #[serde(rename = "@file_sector_offset")]
-    pub file_sector_offset: u64,
-    #[serde(rename = "@num_partition_sectors")]
-    pub num_partition_sectors: u64,
-    #[serde(rename = "@readbackverify")]
-    pub readback_verify: bool,
-    #[serde(rename = "@filename")]
-    pub filename: String,
-    #[serde(rename = "@sparse")]
-    pub sparse: bool,
-    #[serde(rename = "@start_byte_hex")]
-    pub start_byte_hex: String,
-    #[serde(rename = "@SECTOR_SIZE_IN_BYTES")]
-    pub sector_size_in_bytes: u64,
-    #[serde(rename = "@label")]
-    pub label: String,
-}
-
-// Define struct for the <read> node (matches all attributes)
-#[derive(Debug, Deserialize, Serialize, PartialEq, Clone)]
-#[serde(rename = "read")]
-pub struct ReadTag {
-    #[serde(rename = "@filename")]
-    pub filename: String,
-    #[serde(rename = "@physical_partition_number")]
-    pub physical_partition_number: u8,
-    #[serde(rename = "@label")]
-    pub label: String,
-    #[serde(rename = "@start_sector")]
-    pub start_sector: u64,
-    #[serde(rename = "@num_partition_sectors")]
-    pub num_partition_sectors: u64,
-    #[serde(rename = "@SECTOR_SIZE_IN_BYTES")]
-    pub sector_size_in_bytes: u64,
-    #[serde(rename = "@sparse")]
-    pub sparse: bool,
-}
+use crate::xml_file_util::DataRoot;
 
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -94,34 +30,6 @@ pub struct Config {
     pub current_dir: PathBuf,
 
     pub is_connect: bool,
-}
-
-fn create_program_dynamic(
-    lun: u8,
-    start_sector: u64,
-    num_partition_sectors: u64,
-    label: &str
-) -> Program {
-    let size_in_kb = num_partition_sectors as f64 * 4.0;
-    let sector_size = 4096;
-    let sector_size_in_bytes = sector_size * num_partition_sectors;
-    let start_byte = start_sector as u64 * sector_size as u64;
-    let start_byte_hex = format!("{:X}", start_byte);
-
-    Program {
-        start_sector,
-        size_in_kb,
-        physical_partition_number: lun,
-        part_of_single_image: false,
-        file_sector_offset: 0,
-        num_partition_sectors,
-        readback_verify: false,
-        filename: format!("{}.img", label).to_string(),
-        sparse: false,
-        start_byte_hex,
-        sector_size_in_bytes: sector_size_in_bytes,
-        label: label.to_string(),
-    }
 }
 
 fn setup_env(app: &AppHandle) -> Config {
@@ -355,110 +263,71 @@ fn save_to_xml(app: AppHandle, path: &str, xml: &str) {
 
 #[tauri::command]
 fn write_part(app: AppHandle, xml: &str)  -> String {
-// Call the parsing function
-    match from_str::<DataRoot>(&xml) {
-        Ok(data_root) => {
-            let output_dir = "res";
-            if let Err(e) = file_util::create_dir_if_not_exists(output_dir) {
-                return format!("create res dir failed:{}", e);
-            }
-            // Iterate and print each program
-            for mut program in data_root.programs {
-               let (file_name, dir_path) = file_util::parse_file_path(&program.filename);
-               println!("Test {}, {}, {}", &program.filename, &file_name, &dir_path);
-               program.filename = file_name;
-               let program_xml = match to_string(&program) {
-                    Ok(xml) => xml,
-                    Err(_e) => {
-                        continue;
-                    }
-                };
-               let xml_content = format!("<?xml version=\"1.0\" ?>\n<data>\n{}\n</data>\n", program_xml);
-               let file_name = format!("{}\\cmd.xml", &output_dir);
-               println!("file:{}", &file_name);
-               if let Err(e) = fs::write(&file_name, xml_content) {
-                   eprintln!("file{}failed:{}", file_name, e);
-               } else {
-                   println!("success:{}", file_name);
-               }
-
-               let config = setup_env(&app);
-               if config.is_connect == false {
-                    return format!("port not available");
-               }
-               let dir_str = format!("--search_path={}", &dir_path);
-               let _ = app.emit("log_event", &format!("Writ partition {}...", program.label));
-               #[cfg(target_os = "windows")] {
-                   let cmds = ["cmd", "/c", &config.fh_loader_path, &config.fh_port_conn_str, 
-                   "--memoryname=ufs", &dir_str, "--showpercentagecomplete", "--sendxml=res/cmd.xml", 
-                   "--noprompt", "--skip_configure", "--mainoutputdir=res"];
-                   exec_cmd(&app, &cmds, config.current_dir.as_path());
-               }
-               #[cfg(target_os = "linux")] {
-                   let cmds = [&config.fh_loader_path_linux, &config.fh_port_conn_str_linux, 
-                   "--memoryname=ufs", &dir_str, "--showpercentagecomplete", "--sendxml=res/cmd.xml", 
-                   "--noprompt", "--zlpawarehost=1", "--mainoutputdir=res"];
-                   exec_cmd(&app, &cmds, config.current_dir.as_path());
-               }
-            }
-            format!("")
+    let config = setup_env(&app);
+    if config.is_connect == false {
+        return format!("port not available");
+    }
+    let items = xml_file_util::parser_program_xml(xml);
+    for (part, xml_content, dir_path) in items {
+        let file_name = "res/cmd.xml";
+        println!("file:{}", &file_name);
+        if let Err(e) = fs::write(&file_name, xml_content) {
+            eprintln!("file{}failed:{}", file_name, e);
+            let _ = app.emit("log_event", &format!("file{}failed:{}", file_name, e));
+            continue;
+        } else {
+            println!("success:{}", file_name);
         }
-        Err(e) => {
-            let _ = app.emit("log_event", e.to_string());
-            format!("XML parsing failed: {}", e)
+        
+        let dir_str = format!("--search_path={}", &dir_path);
+        let _ = app.emit("log_event", &format!("Writ partition {}...", part));
+        #[cfg(target_os = "windows")] {
+            let cmds = ["cmd", "/c", &config.fh_loader_path, &config.fh_port_conn_str, 
+            "--memoryname=ufs", &dir_str, "--showpercentagecomplete", "--sendxml=res/cmd.xml", 
+            "--noprompt", "--skip_configure", "--mainoutputdir=res"];
+            exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
+        }
+        #[cfg(target_os = "linux")] {
+            let cmds = [&config.fh_loader_path_linux, &config.fh_port_conn_str_linux, 
+            "--memoryname=ufs", &dir_str, "--showpercentagecomplete", "--sendxml=res/cmd.xml", 
+            "--noprompt", "--zlpawarehost=1", "--mainoutputdir=res"];
+            exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
         }
     }
+    return "".to_string();
 }
 
 #[tauri::command]
 fn read_part(app: AppHandle, xml: &str)  -> String {
     // Call the parsing function
-    match from_str::<DataRoot>(&xml) {
-        Ok(data_root) => {
-            let output_dir = "res";
-            if let Err(e) = file_util::create_dir_if_not_exists(output_dir) {
-                return format!("create res dir failed:{}", e);
-            }
-            // Iterate and print each read
-            for read in data_root.read_tags {
-               let read_xml = match to_string(&read) {
-                    Ok(xml) => xml,
-                    Err(_e) => {
-                        continue;
-                    }
-                };
-               let xml_content = format!("<?xml version=\"1.0\" ?>\n<data>\n{}\n</data>\n", read_xml);
-               let file_name = format!("{}\\cmd.xml", &output_dir);
-               println!("file:{}", &file_name);
-               if let Err(e) = fs::write(&file_name, xml_content) {
-                   eprintln!("file{}failed:{}", file_name, e);
-               } else {
-                   println!("success:{}", file_name);
-               }
-
-               let config = setup_env(&app);/*
-               if config.is_connect == false {
-                    return format!("port not available");
-               }*/
-               let _ = app.emit("log_event", &format!("Read partition {}...", read.label));
-               #[cfg(target_os = "windows")] {
-                   let cmds = ["cmd", "/c", &config.fh_loader_path, &config.fh_port_conn_str, "--memoryname=ufs", 
-                   "--convertprogram2read", "--showpercentagecomplete", "--sendxml=res/cmd.xml", "--noprompt", "--skip_configure", "--mainoutputdir=img"];
-                   exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
-               }
-               #[cfg(target_os = "linux")] {
-                   let cmds = [&config.fh_loader_path_linux, &config.fh_port_conn_str_linux, "--memoryname=ufs", 
-                   "--convertprogram2read", "--showpercentagecomplete", "--sendxml=res/cmd.xml", "--noprompt", "--zlpawarehost=1", "--mainoutputdir=img"];
-                   exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
-               }
-            }
-            format!("")
+    let config = setup_env(&app);
+    let items = xml_file_util::parser_read_xml(xml);
+    for (part, xml_content) in items {
+        let file_name = "res/cmd.xml";
+        println!("file:{}", &file_name);
+        if let Err(e) = fs::write(&file_name, xml_content) {
+            eprintln!("file{}failed:{}", file_name, e);
+            continue;
+        } else {
+            println!("success:{}", file_name);
         }
-        Err(e) => {
-            let _ = app.emit("log_event", e.to_string());
-            format!("XML parsing failed: {}", e)
+
+        if config.is_connect == false {
+            return format!("port not available");
+        }
+        let _ = app.emit("log_event", &format!("Read partition {}...", part));
+        #[cfg(target_os = "windows")] {
+            let cmds = ["cmd", "/c", &config.fh_loader_path, &config.fh_port_conn_str, "--memoryname=ufs", 
+            "--convertprogram2read", "--showpercentagecomplete", "--sendxml=res/cmd.xml", "--noprompt", "--skip_configure", "--mainoutputdir=img"];
+            exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
+        }
+        #[cfg(target_os = "linux")] {
+            let cmds = [&config.fh_loader_path_linux, &config.fh_port_conn_str_linux, "--memoryname=ufs", 
+            "--convertprogram2read", "--showpercentagecomplete", "--sendxml=res/cmd.xml", "--noprompt", "--zlpawarehost=1", "--mainoutputdir=img"];
+            exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
         }
     }
+    return "".to_string();
 }
 
 #[tauri::command]
@@ -552,85 +421,52 @@ fn write_from_xml(app: AppHandle, file_path:&str) -> String {
     };
     let (_file_name, dir_path) = file_util::parse_file_path(file_path);
     let dir_str = format!("--search_path={}", &dir_path);
-
-    match from_str::<DataRoot>(&xml) {
-        Ok(data_root) => {
-            let output_dir = "res";
-            if let Err(e) = file_util::create_dir_if_not_exists(output_dir) {
-                return format!("create res dir failed:{}", e);
-            }
-            // Iterate and print each program
-            for program in data_root.programs {
-               let program_xml = match to_string(&program) {
-                    Ok(xml) => xml,
-                    Err(_e) => {
-                        continue;
-                    }
-                };
-               let xml_content = format!("<?xml version=\"1.0\" ?>\n<data>\n{}\n</data>\n", program_xml);
-               let file_name = format!("{}\\cmd.xml", &output_dir);
-               println!("file:{}", &file_name);
-               if let Err(e) = fs::write(&file_name, xml_content) {
-                   eprintln!("file{}failed:{}", file_name, e);
-               } else {
-                   println!("success:{}", file_name);
-               }
-
-               let config = setup_env(&app);
-               if config.is_connect == false {
-                    return format!("port not available");
-               }
-               
-               let _ = app.emit("log_event", &format!("Writ partition {}...", program.label));
-               #[cfg(target_os = "windows")] {
-                   let cmds = ["cmd", "/c", &config.fh_loader_path, &config.fh_port_conn_str, 
-                   "--memoryname=ufs", &dir_str, "--showpercentagecomplete", "--sendxml=res/cmd.xml", 
-                   "--noprompt", "--skip_configure", "--mainoutputdir=res"];
-                   exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
-               }
-               #[cfg(target_os = "linux")] {
-                   let cmds = [&config.fh_loader_path_linux, &config.fh_port_conn_str_linux, 
-                   "--memoryname=ufs", &dir_str, "--showpercentagecomplete", "--sendxml=res/cmd.xml", 
-                   "--noprompt", "--zlpawarehost=1", "--mainoutputdir=res"];
-                   exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
-               }
-            }
-            format!("")
+    
+    let items = xml_file_util::parser_program_xml(&xml);
+    for (part, xml_content, _dir_path) in items {
+        let file_name = "res/cmd.xml";
+        println!("file:{}", &file_name);
+        if let Err(e) = fs::write(&file_name, xml_content) {
+            eprintln!("file{}failed:{}", file_name, e);
+            let _ = app.emit("log_event", &format!("file{}failed:{}", file_name, e));
+            continue;
+        } else {
+            println!("success:{}", file_name);
         }
-        Err(e) => {
-            let _ = app.emit("log_event", e.to_string());
-            format!("XML parsing failed: {}", e)
+
+        if config.is_connect == false {
+            return format!("port not available");
+        }
+        let _ = app.emit("log_event", &format!("Writ partition {}...", part));
+        #[cfg(target_os = "windows")] {
+            let cmds = ["cmd", "/c", &config.fh_loader_path, &config.fh_port_conn_str, 
+            "--memoryname=ufs", &dir_str, "--showpercentagecomplete", "--sendxml=res/cmd.xml", 
+            "--noprompt", "--skip_configure", "--mainoutputdir=res"];
+            exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
+        }
+        #[cfg(target_os = "linux")] {
+            let cmds = [&config.fh_loader_path_linux, &config.fh_port_conn_str_linux, 
+            "--memoryname=ufs", &dir_str, "--showpercentagecomplete", "--sendxml=res/cmd.xml", 
+            "--noprompt", "--zlpawarehost=1", "--mainoutputdir=res"];
+            exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
         }
     }
+    return "".to_string();
 }
 
 #[tauri::command]
 fn read_gpt(app: AppHandle) {
-    let mut root = DataRoot{programs: Vec::new(), read_tags: Vec::new(),};
-
     let config = setup_env(&app);
     if config.is_connect == false {
         return ();
     }
-    
+
+    let mut root = DataRoot{programs: Vec::new(), read_tags: Vec::new(),};
     for i in 0..6 {
         let _ = app.emit("log_event", format!("read lun {}", i));
-        let read_tag = ReadTag {
-            filename: format!("gpt_main{}.bin", i).to_string(),
-            physical_partition_number: i,
-            label: "PrimaryGPT".to_string(),
-            start_sector: 0,
-            num_partition_sectors: 6,
-            sector_size_in_bytes: 4096,
-            sparse: false,
-        };
+        let read_tag = xml_file_util::create_read_tag_dynamic(&format!("gpt_main{}.bin", i), i, 0, 6, "PrimaryGPT");
 
-        let read_xml = match to_string(&read_tag) {
-             Ok(xml) => xml,
-             Err(_e) => {
-                "".to_string()
-             }
-        };
+        let read_xml = xml_file_util::to_xml(&read_tag);
         let xml_content = format!("<?xml version=\"1.0\" ?>\n<data>\n{}\n</data>\n", read_xml);
         file_util::write_to_file("cmd.xml", "res", &xml_content);
         #[cfg(target_os = "windows")] {
@@ -654,8 +490,7 @@ fn read_gpt(app: AppHandle) {
             match parser.parse_file(file_path, 4096) {
                 Ok(_) => {
                     for (_i, partition) in parser.partitions().iter().enumerate() {
-                        //let mut p_tag = Program::new();
-                        let program = create_program_dynamic(i, 
+                        let program = xml_file_util::create_program_dynamic(i, 
                             partition.first_lba, 
                             partition.size_in_sectors(), 
                             &partition.name);
@@ -669,12 +504,7 @@ fn read_gpt(app: AppHandle) {
         }
     }
 
-    let read_xml = match to_string(&root) {
-        Ok(xml) => xml,
-        Err(_e) => {
-        "".to_string()
-        }
-    };
+    let read_xml = xml_file_util::to_xml(&root);
     let _ = app.emit("update_partition_table", &read_xml);
 }
 

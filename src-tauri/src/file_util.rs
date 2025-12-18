@@ -230,7 +230,6 @@ pub fn check_necessary_files_in_edl_folder(path: &str) -> bool {
     if check_folder_exist(&path) {
         let meta_folder = format!("{}/META", path);
         if check_folder_exist(&meta_folder) {
-            // 2. Construct wildcard path: folder + super_def.*.json
             let super_define = format!("{}/super_def.*.json", meta_folder);
             match has_file_in_folder(&meta_folder, &super_define) {
                 Ok(exists) => {
@@ -244,13 +243,47 @@ pub fn check_necessary_files_in_edl_folder(path: &str) -> bool {
                     eprintln!("❌ Check failed: {}", e);
                 }
             }
-            return true;
         } else {
             eprintln!("Folder not found:{}", &meta_folder);
+            return false;
+        }
+
+        let img_folder = format!("{}/IMAGES", path);
+        if check_folder_exist(&img_folder) {
+            let rawprogram_xml = format!("{}/rawprogram?.xml", img_folder);
+            match has_file_in_folder(&img_folder, &rawprogram_xml) {
+                Ok(exists) => {
+                    if exists {
+                        println!("✅ Folder {} contains rawprogram?.xml files", &img_folder);
+                    } else {
+                        println!("❌ No rawprogram?.xml files found in folder {}", &img_folder);
+                    }
+                }
+                Err(e) => {
+                    eprintln!("❌ Check failed: {}", e);
+                }
+            }
+
+            let patch_xml = format!("{}/patch?.xml", img_folder);
+            match has_file_in_folder(&img_folder, &patch_xml) {
+                Ok(exists) => {
+                    if exists {
+                        println!("✅ Folder {} contains patch?.xml files", &img_folder);
+                    } else {
+                        println!("❌ No patch?.xml files found in folder {}", &img_folder);
+                    }
+                }
+                Err(e) => {
+                    eprintln!("❌ Check failed: {}", e);
+                }
+            }
+        } else {
+            eprintln!("Folder not found:{}", &img_folder);
             return false;
         }
     } else {
         eprintln!("Folder not found:{}", &path);
         return false;
     }
+    return true;
 }
