@@ -2632,6 +2632,7 @@ dependencies = [
  "glob",
  "indexmap 2.12.1",
  "itertools",
+ "lazy_static",
  "owo-colors",
  "pbr",
  "quick-xml 0.38.4",

@@ -1,8 +1,10 @@
-﻿mod file_util;
+﻿mod command_worker;
+mod file_util;
 mod gpt_parser;
 mod qdl;
 mod xml_file_util;
 
+use command_worker::CommandItem;
 use serialport::{available_ports, SerialPortType};
 use std::env;
 use std::fs;

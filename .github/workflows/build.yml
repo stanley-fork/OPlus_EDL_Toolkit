@@ -15,7 +15,8 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       release_id: ${{ steps.create-release.outputs.result }}
-      portable_file_name: ${{ env.PORTABLE_FILE_NAME }}
+      portable_file_name_win: ${{ env.PORTABLE_FILE_NAME_WIN }}
+      portable_file_name_linux: ${{ env.PORTABLE_FILE_NAME_LINUX }}
       
     steps:
       - uses: actions/checkout@v4
@@ -29,7 +30,8 @@ jobs:
         run: |
           export PACKAGE_VERSION=$(node -p "require('./package.json').version")
           echo "PACKAGE_VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_ENV
-          echo "PORTABLE_FILE_NAME=oplus_edl_toolkit-$PACKAGE_VERSION.x86_64_portable.zip" >> $GITHUB_ENV        
+          echo "PORTABLE_FILE_NAME_WIN=oplus_edl_toolkit-$PACKAGE_VERSION.x86_64_win_portable.zip" >> $GITHUB_ENV
+          echo "PORTABLE_FILE_NAME_LINUX=oplus_edl_toolkit-$PACKAGE_VERSION.x86_64_linux_portable.zip" >> $GITHUB_ENV
           
       - name: create release
         id: create-release
@@ -55,10 +57,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: 'macos-latest' # for Arm based macs (M1 and above).
-            args: '--target aarch64-apple-darwin'
-          - platform: 'macos-latest' # for Intel based macs.
-            args: '--target x86_64-apple-darwin'
           - platform: 'ubuntu-22.04' # for Tauri v1 you could replace this with ubuntu-20.04.
             args: ''
           - platform: 'windows-latest'
@@ -72,10 +70,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: lts/*
-
-      - name: get file name
-        run: |
-          echo ${{ needs.create-release.outputs.portable_file_name }}
           
       - name: install Rust stable
         uses: dtolnay/rust-toolchain@stable
@@ -87,7 +81,7 @@ jobs:
         if: matrix.platform == 'ubuntu-22.04' # This must match the platform value defined above.
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential pkg-config libudev-dev libusb-1.0-0-dev curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev libwebkit2gtk-4.1-dev librsvg2-dev patchelf 
+          sudo apt-get install -y zip build-essential pkg-config libudev-dev libusb-1.0-0-dev curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev libwebkit2gtk-4.1-dev librsvg2-dev patchelf 
 
       - name: install frontend dependencies
         run: npm install # change this to npm, pnpm or bun depending on which one you use.
@@ -109,12 +103,44 @@ jobs:
           xcopy D:\a\OPlus_EDL_Toolkit\OPlus_EDL_Toolkit\src-tauri\tools D:\a\release\OPlus_EDL_Toolkit\tools /E /I
           Compress-Archive -Path D:\a\release\OPlus_EDL_Toolkit -Destination oplus_edl_toolkit.zip
 
+      - name: Compress oplus_edl_toolkit  (linux only)
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          mkdir -p release/OPlus_EDL_Toolkit
+          cp /home/runner/work/OPlus_EDL_Toolkit/OPlus_EDL_Toolkit/src-tauri/target/release/bundle/appimage/oplus_edl_toolkit_*.AppImage release/OPlus_EDL_Toolkit/
+          cp -a /home/runner/work/OPlus_EDL_Toolkit/OPlus_EDL_Toolkit/src-tauri/res release/OPlus_EDL_Toolkit/
+          cp -a /home/runner/work/OPlus_EDL_Toolkit/OPlus_EDL_Toolkit/src-tauri/img release/OPlus_EDL_Toolkit/
+          cp -a /home/runner/work/OPlus_EDL_Toolkit/OPlus_EDL_Toolkit/src-tauri/tools release/OPlus_EDL_Toolkit/
+          chmod a+x release/OPlus_EDL_Toolkit/tools/*
+          chmod a+x release/OPlus_EDL_Toolkit/*.AppImage
+          cd release
+          zip -r oplus_edl_toolkit.zip OPlus_EDL_Toolkit/
+          mv oplus_edl_toolkit.zip ..
+
       - name: Upload an Asset in GitHub Release (windows only)
         if: matrix.platform == 'windows-latest'
         uses: "actions/github-script@v6"
         env:
           release_id: ${{ needs.create-release.outputs.release_id }}
-          file_name: ${{ needs.create-release.outputs.portable_file_name }}
+          file_name: ${{ needs.create-release.outputs.portable_file_name_win }}
+        with:
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+          script: |
+            const fs = require('fs').promises;
+            await github.rest.repos.uploadReleaseAsset({
+              name: process.env.file_name,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: process.env.release_id,
+              data: await fs.readFile('oplus_edl_toolkit.zip') 
+            });
+
+      - name: Upload an Asset in GitHub Release (linux only)
+        if: matrix.platform == 'ubuntu-22.04'
+        uses: "actions/github-script@v6"
+        env:
+          release_id: ${{ needs.create-release.outputs.release_id }}
+          file_name: ${{ needs.create-release.outputs.portable_file_name_linux }}
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
           script: |
