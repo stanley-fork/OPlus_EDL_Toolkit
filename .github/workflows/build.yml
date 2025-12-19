@@ -70,10 +70,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: lts/*
-
-      - name: get file name
-        run: |
-          echo ${{ needs.create-release.outputs.portable_file_name }}
           
       - name: install Rust stable
         uses: dtolnay/rust-toolchain@stable
