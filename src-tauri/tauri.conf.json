@@ -44,13 +44,6 @@
       "res/misc_tofastbootd.img",
       "res/misc_torecovery.img",
       "img/placeholder"
-    ],
-    "linux": {
-      "appimage": {
-        "files": {
-          "/usr/lib/x86_64-linux-gnu/gio/modules/libgvfsdbus.so": "/usr/lib/x86_64-linux-gnu/gio/modules/libgvfsdbus.so"
-        }
-      }
-    }
+    ]
   }
 }
