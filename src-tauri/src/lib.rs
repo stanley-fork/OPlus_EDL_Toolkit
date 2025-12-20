@@ -164,18 +164,13 @@ fn reboot_to_system(app: AppHandle) {
     }
     let cmd = "<?xml version=\"1.0\" ?><data><power DelayInSeconds=\"0\" value=\"reset\" /></data>";
     file_util::write_to_file("cmd.xml", "res", &cmd);
-    //let _ = app.emit("log_event", &format!("Reboot to system..."));
     #[cfg(target_os = "windows")] {
         command_worker::add_command("Reboot to system", "cmd", 
         vec!["/c", &config.fh_loader_path, &config.fh_port_conn_str, "--memoryname=ufs", "--sendxml=res/cmd.xml", "--noprompt", "--skip_configure", "--mainoutputdir=res"]);
-        //let cmds = ["cmd", "/c", &config.fh_loader_path, &config.fh_port_conn_str, "--memoryname=ufs", "--sendxml=res/cmd.xml", "--noprompt", "--skip_configure", "--mainoutputdir=res"];
-        //exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
     }
     #[cfg(target_os = "linux")] {
         command_worker::add_command("Reboot to system", &config.fh_loader_path_linux, 
         vec![&config.fh_port_conn_str_linux, "--memoryname=ufs", "--sendxml=res/cmd.xml", "--noprompt", "--zlpawarehost=1", "--mainoutputdir=res"]);
-        //let cmds = [&config.fh_loader_path_linux, &config.fh_port_conn_str_linux, "--memoryname=ufs", "--sendxml=res/cmd.xml", "--noprompt", "--zlpawarehost=1", "--mainoutputdir=res"];
-        //exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
     }
 }
 
@@ -192,24 +187,24 @@ fn reboot_to_recovery(app: AppHandle, xml: &str) {
     
     let _ = app.emit("log_event", &format!("Writ misc partition ..."));
     #[cfg(target_os = "windows")] {
-        let cmds = ["cmd", "/c", &config.fh_loader_path, &config.fh_port_conn_str, 
-        "--memoryname=ufs", "--search_path=res", "--showpercentagecomplete", "--sendxml=res/cmd1.xml", 
-        "--noprompt", "--skip_configure", "--mainoutputdir=res"];
-        exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
+        command_worker::add_command("Writ misc partition", "cmd", 
+            vec!["/c", &config.fh_loader_path, &config.fh_port_conn_str, 
+            "--memoryname=ufs", "--search_path=res", "--showpercentagecomplete", "--sendxml=res/cmd1.xml", 
+            "--noprompt", "--skip_configure", "--mainoutputdir=res"]);
         // send reboot command
-        let _ = app.emit("log_event", &format!("Reboot to recovery..."));
-        let cmds = ["cmd", "/c", &config.fh_loader_path, &config.fh_port_conn_str, "--memoryname=ufs", "--sendxml=res/cmd.xml", "--noprompt", "--skip_configure", "--mainoutputdir=res"];
-        exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
+        command_worker::add_command("Reboot to recovery", "cmd", 
+            vec!["/c", &config.fh_loader_path, &config.fh_port_conn_str, "--memoryname=ufs", 
+            "--sendxml=res/cmd.xml", "--noprompt", "--skip_configure", "--mainoutputdir=res"]);
     }
     #[cfg(target_os = "linux")] {
-        let cmds = [&config.fh_loader_path_linux, &config.fh_port_conn_str_linux, 
-        "--memoryname=ufs", "--search_path=res", "--showpercentagecomplete", "--sendxml=res/cmd1.xml", 
-        "--noprompt", "--zlpawarehost=1", "--mainoutputdir=res"];
-        exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
+        command_worker::add_command("Writ misc partition", &config.fh_loader_path_linux, 
+            vec![&config.fh_port_conn_str_linux, "--memoryname=ufs", "--search_path=res", 
+            "--showpercentagecomplete", "--sendxml=res/cmd1.xml", "--noprompt", 
+            "--zlpawarehost=1", "--mainoutputdir=res"]);
         // send reboot command
-        let _ = app.emit("log_event", &format!("Reboot to recovery..."));
-        let cmds = [&config.fh_loader_path_linux, &config.fh_port_conn_str_linux, "--memoryname=ufs", "--sendxml=res/cmd.xml", "--noprompt", "--zlpawarehost=1", "--mainoutputdir=res"];
-        exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
+        command_worker::add_command("Reboot to recovery", &config.fh_loader_path_linux, 
+            vec![&config.fh_port_conn_str_linux, "--memoryname=ufs", "--sendxml=res/cmd.xml", "--noprompt", 
+            "--zlpawarehost=1", "--mainoutputdir=res"]);
     }
 }
 
@@ -221,29 +216,28 @@ fn reboot_to_fastboot(app: AppHandle, xml: &str) {
     }
     // flash misc partition
     file_util::write_to_file("cmd.xml", "res", &xml);
-    let _ = app.emit("log_event", &format!("Writ misc partition ..."));
     let cmd = "<?xml version=\"1.0\" ?><data><power DelayInSeconds=\"0\" value=\"reset\" /></data>";
     file_util::write_to_file("cmd.xml", "res", &cmd);
 
     #[cfg(target_os = "windows")] {
-        let cmds = ["cmd", "/c", &config.fh_loader_path, &config.fh_port_conn_str, 
-        "--memoryname=ufs", "--search_path=res", "--showpercentagecomplete", "--sendxml=res/cmd.xml", 
-        "--noprompt", "--skip_configure", "--mainoutputdir=res"];
-        exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
+        command_worker::add_command("Writ misc partition", "cmd", 
+            vec!["/c", &config.fh_loader_path, &config.fh_port_conn_str, 
+            "--memoryname=ufs", "--search_path=res", "--showpercentagecomplete", "--sendxml=res/cmd1.xml", 
+            "--noprompt", "--skip_configure", "--mainoutputdir=res"]);
         // send reboot command
-        let _ = app.emit("log_event", &format!("Reboot to fastbootD..."));
-        let cmds = ["cmd", "/c", &config.fh_loader_path, &config.fh_port_conn_str, "--memoryname=ufs", "--sendxml=res/cmd.xml", "--noprompt", "--skip_configure", "--mainoutputdir=res"];
-        exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
+        command_worker::add_command("Reboot to fastbootD", "cmd", 
+            vec!["/c", &config.fh_loader_path, &config.fh_port_conn_str, "--memoryname=ufs", 
+            "--sendxml=res/cmd.xml", "--noprompt", "--skip_configure", "--mainoutputdir=res"]);
     }
     #[cfg(target_os = "linux")] {
-        let cmds = [&config.fh_loader_path_linux, &config.fh_port_conn_str_linux, 
-        "--memoryname=ufs", "--search_path=res", "--showpercentagecomplete", "--sendxml=res/cmd.xml", 
-        "--noprompt", "--zlpawarehost=1", "--mainoutputdir=res"];
-        exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
+        command_worker::add_command("Writ misc partition", &config.fh_loader_path_linux, 
+            vec![&config.fh_port_conn_str_linux, "--memoryname=ufs", "--search_path=res", 
+            "--showpercentagecomplete", "--sendxml=res/cmd1.xml", "--noprompt", 
+            "--zlpawarehost=1", "--mainoutputdir=res"]);
         // send reboot command
-        let _ = app.emit("log_event", &format!("Reboot to fastbootD..."));
-        let cmds = [&config.fh_loader_path_linux, &config.fh_port_conn_str_linux, "--memoryname=ufs", "--sendxml=res/cmd.xml", "--noprompt", "--zlpawarehost=1", "--mainoutputdir=res"];
-        exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
+        command_worker::add_command("Reboot to fastbootD", &config.fh_loader_path_linux, 
+            vec![&config.fh_port_conn_str_linux, "--memoryname=ufs", "--sendxml=res/cmd.xml", "--noprompt", 
+            "--zlpawarehost=1", "--mainoutputdir=res"]);
     }
 }
 
@@ -255,14 +249,15 @@ fn reboot_to_edl(app: AppHandle) {
     }
     let cmd = "<?xml version=\"1.0\" ?><data><power DelayInSeconds=\"0\" value=\"reset_to_edl\" /></data>";
     file_util::write_to_file("cmd.xml", "res", &cmd);
-    let _ = app.emit("log_event", &format!("Reboot to EDL..."));
     #[cfg(target_os = "windows")] {
-        let cmds = ["cmd", "/c", &config.fh_loader_path, &config.fh_port_conn_str, "--memoryname=ufs", "--sendxml=res/cmd.xml", "--noprompt", "--skip_configure", "--mainoutputdir=res"];
-        exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
+        command_worker::add_command("Reboot to EDL", "cmd", 
+            vec!["/c", &config.fh_loader_path, &config.fh_port_conn_str, "--memoryname=ufs", 
+            "--sendxml=res/cmd.xml", "--noprompt", "--skip_configure", "--mainoutputdir=res"]);
     }
     #[cfg(target_os = "linux")] {
-        let cmds = [&config.fh_loader_path_linux, &config.fh_port_conn_str_linux, "--memoryname=ufs", "--sendxml=res/cmd.xml", "--noprompt", "--zlpawarehost=1", "--mainoutputdir=res"];
-        exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
+        command_worker::add_command("Reboot to EDL", &config.fh_loader_path_linux, 
+            vec![&config.fh_port_conn_str_linux, "--memoryname=ufs", "--sendxml=res/cmd.xml", "--noprompt", 
+            "--zlpawarehost=1", "--mainoutputdir=res"]);
     }
 }
 
@@ -296,18 +291,16 @@ fn write_part(app: AppHandle, xml: &str)  -> String {
         }
         
         let dir_str = format!("--search_path={}", &dir_path);
-        let _ = app.emit("log_event", &format!("Writ partition {}...", part));
         #[cfg(target_os = "windows")] {
-            let cmds = ["cmd", "/c", &config.fh_loader_path, &config.fh_port_conn_str, 
+            command_worker::add_command(&format!("Writ partition {}...", part), "cmd", 
+            vec!["/c", &config.fh_loader_path, &config.fh_port_conn_str, 
             "--memoryname=ufs", &dir_str, "--showpercentagecomplete", "--sendxml=res/cmd.xml", 
-            "--noprompt", "--skip_configure", "--mainoutputdir=res"];
-            exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
+            "--noprompt", "--skip_configure", "--mainoutputdir=res"]);
         }
         #[cfg(target_os = "linux")] {
-            let cmds = [&config.fh_loader_path_linux, &config.fh_port_conn_str_linux, 
-            "--memoryname=ufs", &dir_str, "--showpercentagecomplete", "--sendxml=res/cmd.xml", 
-            "--noprompt", "--zlpawarehost=1", "--mainoutputdir=res"];
-            exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
+            command_worker::add_command(&format!("Writ partition {}...", part), &config.fh_loader_path_linux,
+            vec![&config.fh_port_conn_str_linux, "--memoryname=ufs", &dir_str, "--showpercentagecomplete", 
+            "--sendxml=res/cmd.xml", "--noprompt", "--zlpawarehost=1", "--mainoutputdir=res"]);
         }
     }
     return "".to_string();
@@ -331,16 +324,15 @@ fn read_part(app: AppHandle, xml: &str)  -> String {
         if config.is_connect == false {
             return format!("port not available");
         }
-        let _ = app.emit("log_event", &format!("Read partition {}...", part));
         #[cfg(target_os = "windows")] {
-            let cmds = ["cmd", "/c", &config.fh_loader_path, &config.fh_port_conn_str, "--memoryname=ufs", 
-            "--convertprogram2read", "--showpercentagecomplete", "--sendxml=res/cmd.xml", "--noprompt", "--skip_configure", "--mainoutputdir=img"];
-            exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
+            command_worker::add_command(&format!("Read partition {}...", part), "cmd", 
+            vec!["/c", &config.fh_loader_path, &config.fh_port_conn_str, "--memoryname=ufs", "--convertprogram2read",
+            "--showpercentagecomplete", "--sendxml=res/cmd.xml", "--noprompt", "--skip_configure", "--mainoutputdir=img"]);
         }
         #[cfg(target_os = "linux")] {
-            let cmds = [&config.fh_loader_path_linux, &config.fh_port_conn_str_linux, "--memoryname=ufs", 
-            "--convertprogram2read", "--showpercentagecomplete", "--sendxml=res/cmd.xml", "--noprompt", "--zlpawarehost=1", "--mainoutputdir=img"];
-            exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
+            command_worker::add_command(&format!("Read partition {}...", part), &config.fh_loader_path_linux,
+            vec![&config.fh_port_conn_str_linux, "--memoryname=ufs", "--convertprogram2read",
+            "--showpercentagecomplete", "--sendxml=res/cmd.xml", "--noprompt", "--zlpawarehost=1", "--mainoutputdir=img"]);
         }
     }
     return "".to_string();
@@ -366,59 +358,45 @@ fn send_loader(app: AppHandle, loader: &str, digest: &str, sig: &str, native: bo
         let digest_str = r"--signeddigests=".to_owned() + digest;
         let sig_str = r"--signeddigests=".to_owned() + sig;
         #[cfg(target_os = "windows")] {
-            let _ = app.emit("log_event", &format!("Send Loader..."));
-            let cmds = ["cmd", "/c", &config.sahara_server_path, "-p", &config.sahara_port_conn_str, "-s", &loader_str];
-            exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
-    
-            let _ = app.emit("log_event", &format!("Send Digest..."));
-            let cmds = ["cmd", "/c", &config.fh_loader_path, &config.fh_port_conn_str, &digest_str, "--testvipimpact", "--noprompt", "--skip_configure", "--mainoutputdir=res"];
-            exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
+            command_worker::add_command("Send Loader", "cmd", 
+            vec!["/c", &config.sahara_server_path, "-p", &config.sahara_port_conn_str, "-s", &loader_str]);
+            
+            command_worker::add_command("Send Digest", "cmd", 
+            vec!["/c", &config.fh_loader_path, &config.fh_port_conn_str, &digest_str, "--testvipimpact", "--noprompt", "--skip_configure", "--mainoutputdir=res"]);
 
-            let _ = app.emit("log_event", &format!("Send Transfer Config..."));
-            let cmds = ["cmd", "/c", &config.fh_loader_path, &config.fh_port_conn_str, "--sendxml=res/transfercfg.xml", "--noprompt", "--skip_configure", "--mainoutputdir=res"];
-            exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
+            command_worker::add_command("Send Transfer Config", "cmd", 
+            vec!["/c", &config.fh_loader_path, &config.fh_port_conn_str, "--sendxml=res/transfercfg.xml", "--noprompt", "--skip_configure", "--mainoutputdir=res"]);
 
-            let _ = app.emit("log_event", &format!("Send Verify..."));
-            let cmds = ["cmd", "/c", &config.fh_loader_path, &config.fh_port_conn_str, "--sendxml=res/verify.xml", "--noprompt", "--skip_configure", "--mainoutputdir=res"];
-            exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
+            command_worker::add_command("Send Verify", "cmd", 
+            vec!["/c", &config.fh_loader_path, &config.fh_port_conn_str, "--sendxml=res/verify.xml", "--noprompt", "--skip_configure", "--mainoutputdir=res"]);
 
-            let _ = app.emit("log_event", &format!("Send Sig..."));
-            let cmds = ["cmd", "/c", &config.fh_loader_path, &config.fh_port_conn_str, &sig_str, "--testvipimpact", "--noprompt", "--skip_configure", "--mainoutputdir=res"];
-            exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
+            command_worker::add_command("Send Sig", "cmd", 
+            vec!["/c", &config.fh_loader_path, &config.fh_port_conn_str, &sig_str, "--testvipimpact", "--noprompt", "--skip_configure", "--mainoutputdir=res"]);
 
-            let _ = app.emit("log_event", &format!("Send SHA256 init..."));
-            let cmds = ["cmd", "/c", &config.fh_loader_path, &config.fh_port_conn_str, "--sendxml=res/sha256init.xml", "--noprompt", "--skip_configure", "--mainoutputdir=res"];
-            exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
+            command_worker::add_command("Send SHA256 init", "cmd", 
+            vec!["/c", &config.fh_loader_path, &config.fh_port_conn_str, "--sendxml=res/sha256init.xml", "--noprompt", "--skip_configure", "--mainoutputdir=res"]);
 
-            let _ = app.emit("log_event", &format!("Send Memory Config..."));
-            let cmds = ["cmd", "/c", &config.fh_loader_path, &config.fh_port_conn_str, "--memoryname=ufs", "--sendxml=res/cfg.xml", "--search_path=res", "--noprompt", "--mainoutputdir=res"];
-            exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
+            command_worker::add_command("Send Storage Config", "cmd", 
+            vec!["/c", &config.fh_loader_path, &config.fh_port_conn_str, "--memoryname=ufs", "--sendxml=res/cfg.xml", "--search_path=res", "--noprompt", "--mainoutputdir=res"]);
         }
         #[cfg(target_os = "linux")] {
-            let (port_path, _port_info) = update_port();
-            let _ = app.emit("log_event", &format!("Send Loader..."));
-            let cmds = [&config.sahara_server_path_linux, "-p", &port_path, "-s", &loader_str];
-            exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
-    
-            let _ = app.emit("log_event", &format!("Send Digest..."));
-            let cmds = [&config.fh_loader_path_linux, &config.fh_port_conn_str_linux, &digest_str, "--testvipimpact", "--noprompt", "--mainoutputdir=res"];
-            exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
+            command_worker::add_command("Send Loader", &config.sahara_server_path_linux, 
+            vec!["-p", &port_path, "-s", &loader_str]);
+            
+            command_worker::add_command("Send Digest", &config.fh_loader_path_linux, 
+            vec![&config.fh_port_conn_str_linux, &digest_str, "--testvipimpact", "--noprompt", "--mainoutputdir=res"]);
 
-            let _ = app.emit("log_event", &format!("Send Transfer Config..."));
-            let cmds = [&config.fh_loader_path_linux, &config.fh_port_conn_str_linux, "--sendxml=res/transfercfg.xml", "--noprompt", "--mainoutputdir=res"];
-            exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
+            command_worker::add_command("Send Transfer Config", &config.fh_loader_path_linux, 
+            vec![&config.fh_port_conn_str_linux, "--sendxml=res/transfercfg.xml", "--noprompt", "--mainoutputdir=res"]);
 
-            let _ = app.emit("log_event", &format!("Send Verify..."));
-            let cmds = [&config.fh_loader_path_linux, &config.fh_port_conn_str_linux, "--sendxml=res/verify.xml", "--noprompt", "--mainoutputdir=res"];
-            exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
+            command_worker::add_command("Send Verify", &config.fh_loader_path_linux, 
+            vec![&config.fh_port_conn_str_linux, "--sendxml=res/verify.xml", "--noprompt", "--mainoutputdir=res"]);
 
-            let _ = app.emit("log_event", &format!("Send Sig..."));
-            let cmds = [&config.fh_loader_path_linux, &config.fh_port_conn_str_linux, &sig_str, "--testvipimpact", "--noprompt", "--mainoutputdir=res"];
-            exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
+            command_worker::add_command("Send Sig", &config.fh_loader_path_linux, 
+            vec![&config.fh_port_conn_str_linux, &sig_str, "--testvipimpact", "--noprompt", "--mainoutputdir=res"]);
 
-            let _ = app.emit("log_event", &format!("Send SHA256 init..."));
-            let cmds = [&config.fh_loader_path_linux, &config.fh_port_conn_str_linux, "--sendxml=res/sha256init.xml", "--memoryname=ufs", "--zlpawarehost=1", "--noprompt", "--mainoutputdir=res"];
-            exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
+            command_worker::add_command("Send SHA256 init", &config.fh_loader_path_linux, 
+            vec![&config.fh_port_conn_str_linux, "--sendxml=res/sha256init.xml", "--memoryname=ufs", "--zlpawarehost=1", "--noprompt", "--mainoutputdir=res"]);
         }
         
     }
@@ -453,18 +431,16 @@ fn write_from_xml(app: AppHandle, file_path:&str) -> String {
         if config.is_connect == false {
             return format!("port not available");
         }
-        let _ = app.emit("log_event", &format!("Writ partition {}...", part));
         #[cfg(target_os = "windows")] {
-            let cmds = ["cmd", "/c", &config.fh_loader_path, &config.fh_port_conn_str, 
-            "--memoryname=ufs", &dir_str, "--showpercentagecomplete", "--sendxml=res/cmd.xml", 
-            "--noprompt", "--skip_configure", "--mainoutputdir=res"];
-            exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
+            command_worker::add_command(&format!("Writ partition {}", part), "cmd", 
+                vec!["/c", &config.fh_loader_path, &config.fh_port_conn_str, 
+                "--memoryname=ufs", &dir_str, "--showpercentagecomplete", "--sendxml=res/cmd.xml", 
+                "--noprompt", "--skip_configure", "--mainoutputdir=res"]);
         }
         #[cfg(target_os = "linux")] {
-            let cmds = [&config.fh_loader_path_linux, &config.fh_port_conn_str_linux, 
-            "--memoryname=ufs", &dir_str, "--showpercentagecomplete", "--sendxml=res/cmd.xml", 
-            "--noprompt", "--zlpawarehost=1", "--mainoutputdir=res"];
-            exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
+            command_worker::add_command(&format!("Writ partition {}", part), &config.fh_loader_path_linux, 
+                vec![&config.fh_port_conn_str_linux, "--memoryname=ufs", &dir_str, "--showpercentagecomplete",
+                 "--sendxml=res/cmd.xml","--noprompt", "--zlpawarehost=1", "--mainoutputdir=res"]);
         }
     }
     return "".to_string();
@@ -479,21 +455,21 @@ fn read_gpt(app: AppHandle) {
 
     let mut root = DataRoot{programs: Vec::new(), read_tags: Vec::new(),};
     for i in 0..6 {
-        let _ = app.emit("log_event", format!("read lun {}", i));
         let read_tag = xml_file_util::create_read_tag_dynamic(&format!("gpt_main{}.bin", i), i, 0, 6, "PrimaryGPT");
 
         let read_xml = xml_file_util::to_xml(&read_tag);
         let xml_content = format!("<?xml version=\"1.0\" ?>\n<data>\n{}\n</data>\n", read_xml);
         file_util::write_to_file("cmd.xml", "res", &xml_content);
         #[cfg(target_os = "windows")] {
-            let cmds = ["cmd", "/c", &config.fh_loader_path, &config.fh_port_conn_str, "--memoryname=ufs", 
-                "--sendxml=res/cmd.xml", "--convertprogram2read", "--mainoutputdir=img", "--skip_configure", "--showpercentagecomplete", "--noprompt"];
-            exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
+            command_worker::add_command(&format!("read LUN {}", i), "cmd", 
+            vec!["/c", &config.fh_loader_path, &config.fh_port_conn_str, "--memoryname=ufs", 
+            "--sendxml=res/cmd.xml", "--convertprogram2read", "--mainoutputdir=img", 
+            "--skip_configure", "--showpercentagecomplete", "--noprompt"]);
         }
         #[cfg(target_os = "linux")] {
-            let cmds = [&config.fh_loader_path_linux, &config.fh_port_conn_str_linux, "--memoryname=ufs", 
-                "--sendxml=res/cmd.xml", "--convertprogram2read", "--mainoutputdir=img", "--zlpawarehost=1", "--showpercentagecomplete", "--noprompt"];
-            exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
+            command_worker::add_command(&format!("read LUN {}", i), &config.fh_loader_path_linux, 
+            vec![&config.fh_port_conn_str_linux, "--memoryname=ufs", "--sendxml=res/cmd.xml",
+            "--convertprogram2read", "--mainoutputdir=img", "--zlpawarehost=1", "--showpercentagecomplete", "--noprompt"]);
         }
         
         //parser gpt
@@ -532,7 +508,7 @@ fn read_device_info(app: AppHandle) -> String {
     }
     let cmd = "<?xml version=\"1.0\" ?><data><getstorageinfo physical_partition_number=\"0\" /></data>";
     file_util::write_to_file("cmd.xml", "res", &cmd);
-    let _ = app.emit("log_event", &format!("Reboot to EDL..."));
+    let _ = app.emit("log_event", &format!("Read Device Info..."));
     #[cfg(target_os = "windows")] {
         let cmds = ["cmd", "/c", &config.fh_loader_path, &config.fh_port_conn_str, "--memoryname=ufs", 
                    "--sendxml=res/cmd.xml", "--noprompt", "--skip_configure", "--mainoutputdir=res"];
