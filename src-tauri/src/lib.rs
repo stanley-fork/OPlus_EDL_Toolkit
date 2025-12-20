@@ -9,8 +9,8 @@ use serialport::{available_ports, SerialPortType};
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::Command;
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Error, command};
+use tokio::process::Command;
 use crate::xml_file_util::DataRoot;
 
 #[derive(Debug, Clone)]
@@ -77,7 +77,7 @@ fn setup_env(app: &AppHandle) -> Config {
     return config;
 }
 
-fn exec_cmd(app: &AppHandle, cmd: &[&str], current_dir:&Path) -> String {
+async fn exec_cmd(app: &AppHandle, cmd: &[&str], current_dir:&Path) -> String {
     if cmd.is_empty() {
         let _ = app.emit("log_event", "[Error]");
         return "[Error] cmd is empty".to_string();
@@ -85,7 +85,6 @@ fn exec_cmd(app: &AppHandle, cmd: &[&str], current_dir:&Path) -> String {
     let mut exe_cmd = Command::new(cmd[0]);
     #[cfg(target_os = "windows")]
     {
-      use std::os::windows::process::CommandExt;
       exe_cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW constant
     }
     let mut cmd_str = format!("{} ", cmd[0]);
@@ -96,7 +95,7 @@ fn exec_cmd(app: &AppHandle, cmd: &[&str], current_dir:&Path) -> String {
         }
     }
     let _ = app.emit("log_event", &format!("{}", cmd_str));
-    let output = exe_cmd.current_dir(current_dir).output();
+    let output = exe_cmd.current_dir(current_dir).output().await;
     
     let result = match output {
         Ok(output) => {
@@ -291,6 +290,7 @@ fn write_part(app: AppHandle, xml: &str)  -> String {
         }
         
         let dir_str = format!("--search_path={}", &dir_path);
+        let _ = app.emit("log_event", format!("Start writing partition {}", part));
         #[cfg(target_os = "windows")] {
             command_worker::add_command(&format!("Writ partition {}...", part), "cmd", 
             vec!["/c", &config.fh_loader_path, &config.fh_port_conn_str, 
@@ -324,6 +324,7 @@ fn read_part(app: AppHandle, xml: &str)  -> String {
         if config.is_connect == false {
             return format!("port not available");
         }
+        let _ = app.emit("log_event", format!("Start reading partition {}", part));
         #[cfg(target_os = "windows")] {
             command_worker::add_command(&format!("Read partition {}...", part), "cmd", 
             vec!["/c", &config.fh_loader_path, &config.fh_port_conn_str, "--memoryname=ufs", "--convertprogram2read",
@@ -358,41 +359,42 @@ fn send_loader(app: AppHandle, loader: &str, digest: &str, sig: &str, native: bo
         let digest_str = r"--signeddigests=".to_owned() + digest;
         let sig_str = r"--signeddigests=".to_owned() + sig;
         #[cfg(target_os = "windows")] {
-            command_worker::add_command("Send Loader", "cmd", 
+            command_worker::add_command_without_notify("Send Loader", "cmd", 
             vec!["/c", &config.sahara_server_path, "-p", &config.sahara_port_conn_str, "-s", &loader_str]);
             
-            command_worker::add_command("Send Digest", "cmd", 
+            command_worker::add_command_without_notify("Send Digest", "cmd", 
             vec!["/c", &config.fh_loader_path, &config.fh_port_conn_str, &digest_str, "--testvipimpact", "--noprompt", "--skip_configure", "--mainoutputdir=res"]);
 
-            command_worker::add_command("Send Transfer Config", "cmd", 
+            command_worker::add_command_without_notify("Send Transfer Config", "cmd", 
             vec!["/c", &config.fh_loader_path, &config.fh_port_conn_str, "--sendxml=res/transfercfg.xml", "--noprompt", "--skip_configure", "--mainoutputdir=res"]);
 
-            command_worker::add_command("Send Verify", "cmd", 
+            command_worker::add_command_without_notify("Send Verify", "cmd", 
             vec!["/c", &config.fh_loader_path, &config.fh_port_conn_str, "--sendxml=res/verify.xml", "--noprompt", "--skip_configure", "--mainoutputdir=res"]);
 
-            command_worker::add_command("Send Sig", "cmd", 
+            command_worker::add_command_without_notify("Send Sig", "cmd", 
             vec!["/c", &config.fh_loader_path, &config.fh_port_conn_str, &sig_str, "--testvipimpact", "--noprompt", "--skip_configure", "--mainoutputdir=res"]);
 
-            command_worker::add_command("Send SHA256 init", "cmd", 
+            command_worker::add_command_without_notify("Send SHA256 init", "cmd", 
             vec!["/c", &config.fh_loader_path, &config.fh_port_conn_str, "--sendxml=res/sha256init.xml", "--noprompt", "--skip_configure", "--mainoutputdir=res"]);
 
             command_worker::add_command("Send Storage Config", "cmd", 
             vec!["/c", &config.fh_loader_path, &config.fh_port_conn_str, "--memoryname=ufs", "--sendxml=res/cfg.xml", "--search_path=res", "--noprompt", "--mainoutputdir=res"]);
         }
         #[cfg(target_os = "linux")] {
-            command_worker::add_command("Send Loader", &config.sahara_server_path_linux, 
+            let (port_path, _port_info) = update_port();
+            command_worker::add_command_without_notify("Send Loader", &config.sahara_server_path_linux, 
             vec!["-p", &port_path, "-s", &loader_str]);
             
-            command_worker::add_command("Send Digest", &config.fh_loader_path_linux, 
+            command_worker::add_command_without_notify("Send Digest", &config.fh_loader_path_linux, 
             vec![&config.fh_port_conn_str_linux, &digest_str, "--testvipimpact", "--noprompt", "--mainoutputdir=res"]);
 
-            command_worker::add_command("Send Transfer Config", &config.fh_loader_path_linux, 
+            command_worker::add_command_without_notify("Send Transfer Config", &config.fh_loader_path_linux, 
             vec![&config.fh_port_conn_str_linux, "--sendxml=res/transfercfg.xml", "--noprompt", "--mainoutputdir=res"]);
 
-            command_worker::add_command("Send Verify", &config.fh_loader_path_linux, 
+            command_worker::add_command_without_notify("Send Verify", &config.fh_loader_path_linux, 
             vec![&config.fh_port_conn_str_linux, "--sendxml=res/verify.xml", "--noprompt", "--mainoutputdir=res"]);
 
-            command_worker::add_command("Send Sig", &config.fh_loader_path_linux, 
+            command_worker::add_command_without_notify("Send Sig", &config.fh_loader_path_linux, 
             vec![&config.fh_port_conn_str_linux, &sig_str, "--testvipimpact", "--noprompt", "--mainoutputdir=res"]);
 
             command_worker::add_command("Send SHA256 init", &config.fh_loader_path_linux, 
@@ -447,7 +449,7 @@ fn write_from_xml(app: AppHandle, file_path:&str) -> String {
 }
 
 #[tauri::command]
-fn read_gpt(app: AppHandle) {
+async fn read_gpt(app: AppHandle) {
     let config = setup_env(&app);
     if config.is_connect == false {
         return ();
@@ -455,21 +457,21 @@ fn read_gpt(app: AppHandle) {
 
     let mut root = DataRoot{programs: Vec::new(), read_tags: Vec::new(),};
     for i in 0..6 {
+        let _ = app.emit("log_event", format!("read LUN {}...", i));
         let read_tag = xml_file_util::create_read_tag_dynamic(&format!("gpt_main{}.bin", i), i, 0, 6, "PrimaryGPT");
 
         let read_xml = xml_file_util::to_xml(&read_tag);
         let xml_content = format!("<?xml version=\"1.0\" ?>\n<data>\n{}\n</data>\n", read_xml);
         file_util::write_to_file("cmd.xml", "res", &xml_content);
         #[cfg(target_os = "windows")] {
-            command_worker::add_command(&format!("read LUN {}", i), "cmd", 
-            vec!["/c", &config.fh_loader_path, &config.fh_port_conn_str, "--memoryname=ufs", 
-            "--sendxml=res/cmd.xml", "--convertprogram2read", "--mainoutputdir=img", 
-            "--skip_configure", "--showpercentagecomplete", "--noprompt"]);
+            let cmds = ["cmd", "/c", &config.fh_loader_path, &config.fh_port_conn_str, "--memoryname=ufs", 
+                "--sendxml=res/cmd.xml", "--convertprogram2read", "--mainoutputdir=img", "--skip_configure", "--showpercentagecomplete", "--noprompt"];
+            exec_cmd(&app, &cmds, PathBuf::from(".").as_path()).await;
         }
         #[cfg(target_os = "linux")] {
-            command_worker::add_command(&format!("read LUN {}", i), &config.fh_loader_path_linux, 
-            vec![&config.fh_port_conn_str_linux, "--memoryname=ufs", "--sendxml=res/cmd.xml",
-            "--convertprogram2read", "--mainoutputdir=img", "--zlpawarehost=1", "--showpercentagecomplete", "--noprompt"]);
+            let cmds = [&config.fh_loader_path_linux, &config.fh_port_conn_str_linux, "--memoryname=ufs", 
+                "--sendxml=res/cmd.xml", "--convertprogram2read", "--mainoutputdir=img", "--zlpawarehost=1", "--showpercentagecomplete", "--noprompt"];
+            exec_cmd(&app, &cmds, PathBuf::from(".").as_path()).await;
         }
         
         //parser gpt
@@ -501,7 +503,7 @@ fn read_gpt(app: AppHandle) {
 }
 
 #[tauri::command]
-fn read_device_info(app: AppHandle) -> String {
+async fn read_device_info(app: AppHandle) -> String {
     let config = setup_env(&app);
     if config.is_connect == false {
         return "Device not found".to_string();
@@ -512,7 +514,7 @@ fn read_device_info(app: AppHandle) -> String {
     #[cfg(target_os = "windows")] {
         let cmds = ["cmd", "/c", &config.fh_loader_path, &config.fh_port_conn_str, "--memoryname=ufs", 
                    "--sendxml=res/cmd.xml", "--noprompt", "--skip_configure", "--mainoutputdir=res"];
-        let result = exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
+        let result = exec_cmd(&app, &cmds, PathBuf::from(".").as_path()).await;
         if result.starts_with("[Error]") == false {
             return file_util::analysis_info(&result);
         }
@@ -520,7 +522,7 @@ fn read_device_info(app: AppHandle) -> String {
     #[cfg(target_os = "linux")] {
         let cmds = [&config.fh_loader_path_linux, &config.fh_port_conn_str_linux, "--memoryname=ufs", 
                    "--sendxml=res/cmd.xml", "--noprompt", "--zlpawarehost=1", "--mainoutputdir=res"];
-        let result = exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
+        let result = exec_cmd(&app, &cmds, PathBuf::from(".").as_path()).await;
         if result.starts_with("[Error]") == false {
             return file_util::analysis_info(&result);
         }
@@ -529,10 +531,10 @@ fn read_device_info(app: AppHandle) -> String {
 }
 
 #[tauri::command]
-fn switch_slot(app: AppHandle, slot: &str) -> String {
+async fn switch_slot(app: AppHandle, slot: &str) -> Result<String, Error> {
     let config = setup_env(&app);
     if config.is_connect == false {
-        return "Device not found".to_string();
+        return Err(tauri::Error::AssetNotFound("Device not found".to_string()));
     }
     let cmd = if slot == "A" {
         "<?xml version=\"1.0\" ?><data><setbootablestoragedrive value=\"1\" /></data>".to_string()
@@ -545,14 +547,14 @@ fn switch_slot(app: AppHandle, slot: &str) -> String {
     #[cfg(target_os = "windows")] {
         let cmds = ["cmd", "/c", &config.fh_loader_path, &config.fh_port_conn_str, "--memoryname=ufs", 
                    "--sendxml=res/cmd.xml", "--noprompt", "--skip_configure", "--mainoutputdir=res"];
-        result = exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
+        result = exec_cmd(&app, &cmds, PathBuf::from(".").as_path()).await;
     }
     #[cfg(target_os = "linux")] {
         let cmds = [&config.fh_loader_path_linux, &config.fh_port_conn_str_linux, "--memoryname=ufs", 
                    "--sendxml=res/cmd.xml", "--noprompt", "--zlpawarehost=1", "--mainoutputdir=res"];
-        result = exec_cmd(&app, &cmds, PathBuf::from(".").as_path());
+        result = exec_cmd(&app, &cmds, PathBuf::from(".").as_path()).await;
     }
-    return result;
+    return Ok(result);
 }
 
 #[tauri::command]
