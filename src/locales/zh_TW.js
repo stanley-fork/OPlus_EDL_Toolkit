@@ -6,6 +6,8 @@
 		sign: 'Sign:',
 		edlFolder: 'EDL 刷機包資料夾',
 		selectBtn: '選擇',
+		imgSavingPath: '分割區映像檔保存路徑：',
+		selectImgPathBtn: '更改',
 		portStatus: 'EDL設備已連接',
 		portStatusError: '未找到EDL設備',
 	},

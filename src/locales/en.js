@@ -6,6 +6,8 @@ export default {
 		sign: 'Sign:',
 		edlFolder: 'EDL package folder',
 		selectBtn: 'Select',
+		imgSavingPath: 'Partition Image Save Path:',
+		selectImgPathBtn: 'Change',
 		portStatus: 'EDL device connected',
 		portStatusError: 'EDL device not found',
 	},

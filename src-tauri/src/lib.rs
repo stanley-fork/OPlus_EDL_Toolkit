@@ -378,7 +378,7 @@ fn write_part(app: AppHandle, xml: &str)  -> String {
 }
 
 #[tauri::command]
-fn read_part(app: AppHandle, xml: &str)  -> String {
+fn read_part(app: AppHandle, xml: &str, folder: &str)  -> String {
     // Call the parsing function
     let config = setup_env(&app);
     let items = xml_file_util::parser_read_xml(xml);
@@ -395,16 +395,17 @@ fn read_part(app: AppHandle, xml: &str)  -> String {
         if config.is_connect == false {
             return format!("port not available");
         }
+        let dir_str = format!("--mainoutputdir={}", &folder);
         let _ = app.emit("log_event", format!("Start reading partition {}", part));
         #[cfg(target_os = "windows")] {
             command_worker::add_command(&format!("Read partition {}...", part), "cmd", 
             vec!["/c", &config.fh_loader_path, &config.fh_port_conn_str, "--memoryname=ufs", "--convertprogram2read",
-            "--showpercentagecomplete", "--sendxml=res/cmd.xml", "--noprompt", "--skip_configure", "--mainoutputdir=img"]);
+            "--showpercentagecomplete", "--sendxml=res/cmd.xml", "--noprompt", "--skip_configure", &dir_str]);
         }
         #[cfg(target_os = "linux")] {
             command_worker::add_command(&format!("Read partition {}...", part), &config.fh_loader_path_linux,
             vec![&config.fh_port_conn_str_linux, "--memoryname=ufs", "--convertprogram2read",
-            "--showpercentagecomplete", "--sendxml=res/cmd.xml", "--noprompt", "--zlpawarehost=1", "--mainoutputdir=img"]);
+            "--showpercentagecomplete", "--sendxml=res/cmd.xml", "--noprompt", "--zlpawarehost=1", &dir_str]);
         }
     }
     return "".to_string();

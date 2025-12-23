@@ -6,6 +6,8 @@
 		sign: 'Sign:',
 		edlFolder: 'EDL刷机包文件夹',
 		selectBtn: '选择',
+		imgSavingPath: '分区镜像保存路径：',
+		selectImgPathBtn: '变更',
 		portStatus: 'EDL设备已连接',
 		portStatusError: '未找到EDL设备',
 	},
