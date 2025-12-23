@@ -43,6 +43,10 @@
         newVal ? dialog.showModal() : dialog.close();
     });
 
+    listen("stop_edl_flashing", (payload) => {
+        isRunning.value = false;
+    });
+
     listen("update_percentage", (payload) => {
         percentage.value = payload.payload;
         if (percentage.value >= 100) {

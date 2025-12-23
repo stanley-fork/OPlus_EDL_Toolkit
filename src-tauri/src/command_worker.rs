@@ -240,9 +240,9 @@ pub fn add_command_without_notify(msg: &str, cmd: &str, args: Vec<&str>) {
     drop(queue);
 }
 
-pub fn exec_cmd(cmd: &str, args: Vec<&str>, current_dir:&Path) -> String {
+pub fn exec_cmd(cmd: &str, args: Vec<&str>, current_dir:&Path) -> bool {
     if cmd.is_empty() {
-        return "[Error] cmd is empty".to_string();
+        return false;
     }
     let mut exe_cmd = Command::new(cmd);
     #[cfg(target_os = "windows")]
@@ -258,7 +258,7 @@ pub fn exec_cmd(cmd: &str, args: Vec<&str>, current_dir:&Path) -> String {
     println!("cmd: {}", cmd_str);
     let output = exe_cmd.current_dir(current_dir).output();
     
-    let result = match output {
+    let _ = match output {
         Ok(output) => {
             if output.status.success() {
                 println!("{}",String::from_utf8_lossy(&output.stdout).to_string());
@@ -266,16 +266,16 @@ pub fn exec_cmd(cmd: &str, args: Vec<&str>, current_dir:&Path) -> String {
             } else {
                 let err_msg = String::from_utf8_lossy(&output.stderr).to_string();
                 println!("[Error]: {}", err_msg);
-                format!("[Error]: {}", err_msg)
+                return false;
             }
         }
         Err(e) => {
             let err_msg = format!("Execution failed: {}", e);
             println!("[Error]: {}", err_msg);
-            format!("[Error]: {}", err_msg)
+            return false;
         }
     };
-    return result;
+    return true;
 }
 
 pub fn flash_part(port_path: &str, folder: &str, xml_content: &str) -> bool {
@@ -299,19 +299,20 @@ pub fn flash_part(port_path: &str, folder: &str, xml_content: &str) -> bool {
     }
         
     let dir_str = format!("--search_path={}", &folder);
+    let mut result = true;
     #[cfg(target_os = "windows")] {
-        exec_cmd("cmd", 
+        result = exec_cmd("cmd", 
         vec!["/c", &fh_loader_path, &port_conn_str, 
         "--memoryname=ufs", &dir_str, "--showpercentagecomplete", "--sendxml=res/cmd.xml", 
         "--noprompt", "--skip_configure", "--mainoutputdir=res"], Path::new(&folder));
     }
     #[cfg(target_os = "linux")] {
-        exec_cmd(&fh_loader_path_linux,
+        result = exec_cmd(&fh_loader_path_linux,
         vec![&port_conn_str_linux, "--memoryname=ufs", &dir_str, "--showpercentagecomplete", 
         "--sendxml=res/cmd.xml", "--noprompt", "--zlpawarehost=1", "--mainoutputdir=res"], Path::new(&folder));
     }
 
-    return true;
+    return result;
 }
 
 pub fn flash_patch_xml(port_path: &str, folder: &str, file_name: &str) -> bool {
@@ -328,19 +329,20 @@ pub fn flash_patch_xml(port_path: &str, folder: &str, file_name: &str) -> bool {
             
     let sendxml_str = format!("--sendxml={}", &file_name);
     let dir_str = format!("--search_path={}", &folder);
+    let mut result = true;
     #[cfg(target_os = "windows")] {
-        exec_cmd("cmd", 
+        result = exec_cmd("cmd", 
         vec!["/c", &fh_loader_path, &port_conn_str, 
         "--memoryname=ufs", &dir_str, "--showpercentagecomplete", &sendxml_str, 
         "--noprompt", "--skip_configure", "--mainoutputdir=res"], Path::new(&folder));
     }
     #[cfg(target_os = "linux")] {
-        exec_cmd(&fh_loader_path_linux,
+        result = exec_cmd(&fh_loader_path_linux,
         vec![&port_conn_str_linux, "--memoryname=ufs", &dir_str, "--showpercentagecomplete", 
         &sendxml_str, "--noprompt", "--zlpawarehost=1", "--mainoutputdir=res"], Path::new(&folder));
     }
 
-    return true;
+    return result;
 }
 
 pub fn switch_slot(port_path: &str, slot: &str) -> bool {

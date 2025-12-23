@@ -149,34 +149,54 @@ fn print_result(app: &AppHandle, item: CommandItem) {
     }
 }
 
-fn flash_program_xml(app: &AppHandle, port_path: &str, folder: &str, programs: Vec<(String, String)>) -> bool {
+fn flash_program_xml(state: &Arc<std::sync::Mutex<ThreadState>>, app: &AppHandle, port_path: &str, 
+folder: &str, programs: Vec<(String, String)>) -> bool {
     let total = programs.len();
     let mut count = 0;
     
     for (label, program) in programs {
+        if state.lock().unwrap().running.load(Ordering::SeqCst) == false {
+            let _ = app.emit("log_event", "Operation canceled by user");
+            return false;
+        }
         count += 1;
         thread::sleep(Duration::from_secs(1));
         
-        command_worker::flash_part(&port_path, &folder, &program);
-        println!("Flash program:{} / {}", (count * 60)/total, total);
-        let _ = app.emit("log_event", format!("Flash partition: {}", label));
-        let _ = app.emit("update_percentage", 20 + (count * 60)/total);
+        if command_worker::flash_part(&port_path, &folder, &program) == false {
+            let _ = app.emit("log_event", format!("Failed to flash partition: {}", label));
+            let _ = app.emit("stop_edl_flashing", "");
+            return false;
+        } else {
+            println!("Flash program:{} / {}", (count * 60)/total, total);
+            let _ = app.emit("log_event", format!("Flash partition: {}", label));
+            let _ = app.emit("update_percentage", 20 + (count * 60)/total);
+        }
     }
     return true;
 }
 
-fn flash_patch_xml(app: &AppHandle, port_path: &str, folder: &str, files: Vec<String>) -> bool {
+fn flash_patch_xml(state: &Arc<std::sync::Mutex<ThreadState>>, app: &AppHandle, 
+port_path: &str, folder: &str, files: Vec<String>) -> bool {
     let total = files.len();
     let mut count = 0;
 
     for file in files {
+        if state.lock().unwrap().running.load(Ordering::SeqCst) == false {
+            let _ = app.emit("log_event", "Operation canceled by user");
+            return false;
+        }
         count += 1;
         thread::sleep(Duration::from_secs(1));
 
-        command_worker::flash_patch_xml(&port_path, &folder, &file);
-        println!("Flash patch:{} / {}", (count * 15)/total, total);
-        let _ = app.emit("log_event", format!("Flash patch file: {}", &file));
-        let _ = app.emit("update_percentage", 80 + (count * 15)/total);
+        if command_worker::flash_patch_xml(&port_path, &folder, &file) == false {
+            let _ = app.emit("log_event", format!("Failed to flash patch: {}", &file));
+            let _ = app.emit("stop_edl_flashing", "");
+            return false;
+        } else {
+            println!("Flash patch:{} / {}", (count * 15)/total, total);
+            let _ = app.emit("log_event", format!("Flash patch file: {}", &file));
+            let _ = app.emit("update_percentage", 80 + (count * 15)/total);
+        }
     }
     return true;
 }
@@ -643,10 +663,20 @@ fn start_flashing(app: AppHandle, path: String, is_protect_lun5: bool, thread_st
                 if package.is_miss_file == false {
                     let _ = app_clone.emit("log_event", &format!("Check necessary files...OK"));
                     let _ = app_clone.emit("update_percentage", 10);
-                    if super_image_creater::creat_super_image(&package.super_define) == false ||
-                       state_clone.lock().unwrap().running.load(Ordering::SeqCst) == false {
+                    let _ = app_clone.emit("log_event", &format!("Merging Super image..."));
+                    if super_image_creater::creat_super_image(&package.super_define) == false {
+                        let _ = app_clone.emit("stop_edl_flashing", "");
+                        let _ = app_clone.emit("log_event", "Failed to create Super image.");
+                        let _ = app_clone.emit("log_event", "The flashing operation has been stopped");
+                        state_clone.lock().unwrap().running.store(false, Ordering::SeqCst);
                         return;
                     }
+                    if state_clone.lock().unwrap().running.load(Ordering::SeqCst) == false {
+                        let _ = app_clone.emit("log_event", "Operation canceled by user");
+                        let _ = app_clone.emit("log_event", "The flashing operation has been stopped");
+                        return;
+                    }
+                    let _ = app_clone.emit("log_event", &format!("Merge Super image...OK"));
                     let _ = app_clone.emit("update_percentage", 20);
                     let (port_path, _port_info) = update_port();
                     //if port_path == "Not found" {
@@ -654,15 +684,21 @@ fn start_flashing(app: AppHandle, path: String, is_protect_lun5: bool, thread_st
                     //    return;
                     //}
                     let (_file_name, dir_path) = file_util::parse_file_path("", &package.patch_files[0]);
-                    if flash_program_xml(&app_clone, &port_path, &dir_path, package.raw_programs) == false {
+                    if flash_program_xml(&state_clone, &app_clone, &port_path, &dir_path, package.raw_programs) == false {
+                        let _ = app_clone.emit("log_event", "The flashing operation has been stopped");
+                        state_clone.lock().unwrap().running.store(false, Ordering::SeqCst);
                         return;
                     }
                     let _ = app_clone.emit("update_percentage", 80);
-                    if flash_patch_xml(&app_clone, &port_path, &dir_path, package.patch_files) == false {
+                    if flash_patch_xml(&state_clone, &app_clone, &port_path, &dir_path, package.patch_files) == false {
+                        let _ = app_clone.emit("log_event", "The flashing operation has been stopped");
+                        state_clone.lock().unwrap().running.store(false, Ordering::SeqCst);
                         return;
                     }
                     let _ = app_clone.emit("update_percentage", 95);
                     if command_worker::switch_slot(&port_path, "A") == false {
+                        let _ = app_clone.emit("log_event", "The flashing operation has been stopped");
+                        state_clone.lock().unwrap().running.store(false, Ordering::SeqCst);
                         return;
                     }
                     let _ = app_clone.emit("update_percentage", 100);
@@ -676,7 +712,6 @@ fn start_flashing(app: AppHandle, path: String, is_protect_lun5: bool, thread_st
         }
 
         state_clone.lock().unwrap().running.store(false, Ordering::SeqCst);
-
         let _ = app_clone.emit("log_event", "The flashing operation has been stopped");
     });
 

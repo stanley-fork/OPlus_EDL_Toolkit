@@ -89,9 +89,9 @@ pub fn read_partition_config<P: AsRef<Path>>(path: P) -> Result<PartitionConfig,
     Ok(config)
 }
 
-fn exec_cmd(cmd: &str, args: Vec<String>, current_dir:&Path) -> String {
+fn exec_cmd(cmd: &str, args: Vec<String>, current_dir:&Path) -> bool {
     if cmd.is_empty() {
-        return "[Error] cmd is empty".to_string();
+        return false;
     }
     let mut exe_cmd = Command::new(cmd);
     #[cfg(target_os = "windows")]
@@ -107,24 +107,24 @@ fn exec_cmd(cmd: &str, args: Vec<String>, current_dir:&Path) -> String {
     println!("cmd: {}", cmd_str);
     let output = exe_cmd.current_dir(current_dir).output();
     
-    let result = match output {
+    let _ = match output {
         Ok(output) => {
             if output.status.success() {
                 println!("{}",String::from_utf8_lossy(&output.stdout).to_string());
-                String::from_utf8_lossy(&output.stdout).to_string()
+                return true;
             } else {
                 let err_msg = String::from_utf8_lossy(&output.stderr).to_string();
                 println!("[Error]: {}", err_msg);
-                format!("[Error]: {}", err_msg)
+                return false;
             }
         }
         Err(e) => {
             let err_msg = format!("Execution failed: {}", e);
             println!("[Error]: {}", err_msg);
-            format!("[Error]: {}", err_msg)
+            return false;
         }
     };
-    return result;
+    return true;
 }
 
 struct EnvConfig {
@@ -201,12 +201,12 @@ pub fn creat_super_image(path: &str) -> bool {
                  args.push(format!("IMAGES/super.img"));
 
                  let config = get_runtime_env(&path);
-                 exec_cmd(&config.lpmake_path, args, config.work_dir.as_path());
+                 return exec_cmd(&config.lpmake_path, args, config.work_dir.as_path());
              } else {
                  return false;
              }
          },
          Err(_e) => { return false; }
     }
-    return true;
+    return false;
 }
