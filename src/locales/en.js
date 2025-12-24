@@ -33,12 +33,10 @@ export default {
 		readGPT: 'Read GPT',
 		readPart: 'Read Partition',
 		writePart: 'Write Partition',
-		writeFromXML: 'Write from XML',
+		runCmdFromXML: 'Run XML command',
 		createXML: 'Save to XML',
 		readDeviceInfo: 'Read device Info',
 		switchSlot: 'Switch Slot',
-		useBuildIn: 'Use the build-in fh_loader',
-		protectLun5: 'Protect LUN 5',
 		saveAlert: 'Please select at least one partition.',
 	},
 	edl: {
@@ -61,5 +59,12 @@ export default {
 	log: {
 		title: 'Log',
 		clearLog: 'Clear Log',
+	}, 
+	setting: {
+		title: 'Setting',
+		imgSavingPath: 'Partition Image Save Path:',
+		selectImgPathBtn: 'Change',
+		useBuildIn: 'Use the build-in fh_loader',
+		protectLun5: 'Protect LUN 5',
 	}
 }

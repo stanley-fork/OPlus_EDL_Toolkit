@@ -33,12 +33,10 @@
 		readGPT: '读取分区表',
 		readPart: '提取选中分区',
 		writePart: '写入选中分区',
-		writeFromXML: 'XML写入固件',
+		runCmdFromXML: '运行XML中的指令',
 		createXML: '保存至XML',
 		readDeviceInfo: '读设备信息',
 		switchSlot: '切换槽位',
-		useBuildIn: '使用內建fh_loader',
-		protectLun5: '保护 LUN 5',
 		saveAlert: '请至少选取一个分区',
 	},
 	edl: {
@@ -61,5 +59,13 @@
 	log: {
 		title: '操作日志',
 		clearLog: '清除操作日志',
+	},
+	setting: {
+		title: '设置',
+		imgSavingPath: '分区镜像保存路径：',
+		selectImgPathBtn: '变更',
+		useBuildIn: '使用內建fh_loader',
+		protectLun5: '保护 LUN 5',
+
 	}
 }
