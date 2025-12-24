@@ -35,8 +35,8 @@ export default {
 		writePart: 'Записать раздел',
 		runCmdFromXML: 'Запустить XML команду',
 		createXML: 'Сохранить в XML',
-		readDeviceInfo: 'Read Device Info',
-		switchSlot: 'Сменить Slot',
+		readDeviceInfo: 'Читать Device Info',
+		switchSlot: 'Сменить слот',
 		saveAlert: 'Пожалуйста, выберите хотя бы один раздел.',
 	},
 	edl: {
