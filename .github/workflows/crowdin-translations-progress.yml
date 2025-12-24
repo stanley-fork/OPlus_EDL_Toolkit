@@ -9,6 +9,8 @@ on:
 jobs:
   crowdin-translations-progress:
     runs-on: ubuntu-latest
+    environment:
+      name: Normal
     steps:
       - name: Checkout
         uses: actions/checkout@v3
