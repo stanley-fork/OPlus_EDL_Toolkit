@@ -22,9 +22,11 @@ pub enum JsonParseError {
 #[serde(rename_all = "snake_case")] // Ensure field names match JSON's snake_case convention
 pub struct PartitionConfig {
     pub super_meta: SuperMeta,
+    #[allow(dead_code)]
     pub nv_text: String,
     pub block_devices: Vec<BlockDevice>,
     pub groups: Vec<Group>,
+    #[allow(dead_code)]
     pub nv_id: String,
     pub partitions: Vec<Partition>,
 }
@@ -33,6 +35,7 @@ pub struct PartitionConfig {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct SuperMeta {
+    #[allow(dead_code)]
     pub path: String,
     pub size: String, // Size stored as string (JSON uses string-encoded numbers; convert later if needed)
 }
@@ -43,6 +46,7 @@ pub struct SuperMeta {
 pub struct BlockDevice {
     pub block_size: String,
     pub name: String,
+    #[allow(dead_code)]
     pub alignment: String,
     pub size: String,
 }
@@ -60,6 +64,7 @@ pub struct Group {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct Partition {
+    #[allow(dead_code)]
     pub is_dynamic: bool,
     pub name: String,
     pub group_name: String,
@@ -170,7 +175,10 @@ pub fn creat_super_image(path: &str) -> bool {
     match read_partition_config(define_path) {
          Ok(config) => {
              if config.block_devices.len() > 0 && config.groups.len() > 0 {
+                 let env_config = get_runtime_env(&path);
                  let mut args = Vec::<String>::new();
+                 args.push(format!("/c"));
+                 args.push(env_config.lpmake_path);
                  args.push(format!("--device-size={}", config.block_devices[0].size));
                  args.push(format!("--metadata-size={}", config.super_meta.size));
                  args.push(format!("--metadata-slots={}", config.groups.len()));
@@ -190,18 +198,27 @@ pub fn creat_super_image(path: &str) -> bool {
                          args.push(format!("--partition"));
                          args.push(format!("{}:none:0:{}", partition.name, partition.group_name));
                      } else {
+                         let mut simg_args = Vec::<String>::new();
+                         simg_args.push(format!("/c"));
+                         simg_args.push(format!("{}", env_config.simg2img_path));
+                         simg_args.push(partition.path.clone());
+                         simg_args.push(format!("{}.raw", &partition.path));
+
                          args.push(format!("--partition"));
                          args.push(format!("{}:readonly:{}:{}", partition.name, partition.size, partition.group_name));
                          args.push(format!("--image"));
-                         args.push(format!("{}={}", partition.name, partition.path));
+                         if exec_cmd("cmd", simg_args, env_config.work_dir.as_path()) {
+                             args.push(format!("{}={}.raw", partition.name, &partition.path));
+                         } else {
+                             args.push(format!("{}={}", partition.name, &partition.path));
+                         }
                      }
                  }
                  args.push(format!("-F"));
                  args.push(format!("--output"));
                  args.push(format!("IMAGES/super.img"));
 
-                 let config = get_runtime_env(&path);
-                 return exec_cmd(&config.lpmake_path, args, config.work_dir.as_path());
+                 return exec_cmd("cmd", args, env_config.work_dir.as_path());
              } else {
                  return false;
              }
