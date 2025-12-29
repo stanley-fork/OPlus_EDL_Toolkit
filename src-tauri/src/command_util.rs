@@ -39,7 +39,7 @@ enum LogLevel {
 
 impl Config {
     
-    pub fn setup_env() -> Self {
+    pub fn setup_env(debug: bool) -> Self {
         let mut config = Self {
             fh_loader_path: String::new(),
             sahara_server_path: String::new(),
@@ -69,6 +69,11 @@ impl Config {
         let sahara_server_path = tools_dir.join("QSaharaServer.exe");
         let fhloader_path_linux = tools_dir.join("fh_loader");
         let sahara_server_path_linux = tools_dir.join("QSaharaServer");
+        let log_level = match debug {
+            true => LogLevel::Debug,
+            false => LogLevel::Info,
+        };
+
     
         config.current_dir = parent_dir;
         config.fh_port_conn_str = port_conn_str;
@@ -79,6 +84,7 @@ impl Config {
         config.fh_loader_path_linux = fhloader_path_linux.to_str().unwrap_or("fh_loader").to_string();
         config.sahara_server_path_linux = sahara_server_path_linux.to_str().unwrap_or("QSaharaServer").to_string();
         config.is_connect = !config.fh_port_conn_str.is_empty();
+        config.log_level = log_level;
         return config;
     }
 }

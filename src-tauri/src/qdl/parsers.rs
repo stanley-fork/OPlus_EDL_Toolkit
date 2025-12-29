@@ -11,6 +11,7 @@ use crate::qdl::types::{ FirehoseResetMode, FirehoseStatus, QdlChan };
 use crate::qdl::firehose::{firehose_configure, firehose_read, firehose_reset };
 
 /// The highest protocol version currently supported by the library
+#[allow(dead_code)]
 const FH_PROTO_VERSION_SUPPORTED: u32 = 1;
 
 // Parsers are kept separate for more flexibility (e.g. log replay analysis)
@@ -29,6 +30,7 @@ pub fn firehose_parser_ack_nak<T: QdlChan>(
 }
 
 /// Parse the \<configure\> response
+#[allow(dead_code)]
 pub fn firehose_parser_configure_response<T: QdlChan>(
     channel: &mut T,
     attrs: &IndexMap<String, String>,

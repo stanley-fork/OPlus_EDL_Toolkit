@@ -95,8 +95,8 @@ fn print_result(app: &AppHandle, item: CommandItem) {
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
-async fn erase_part(app: AppHandle, xml: &str) -> Result<(), Error> {
-    let config = command_util::Config::setup_env();
+async fn erase_part(app: AppHandle, xml: &str, is_debug: bool) -> Result<(), Error> {
+    let config = command_util::Config::setup_env(is_debug);
     if config.is_connect == false {
         let _ = app.emit("log_event", "port not available");
         return Err(tauri::Error::AssetNotFound("port not available".to_string()));
@@ -145,8 +145,8 @@ fn init(app: AppHandle) {
 }
 
 #[tauri::command]
-async fn read_device_info(app: AppHandle) -> String {
-    let config = command_util::Config::setup_env();
+async fn read_device_info(app: AppHandle, is_debug: bool) -> String {
+    let config = command_util::Config::setup_env(is_debug);
     if config.is_connect == false {
         return "Device not found".to_string();
     }
@@ -176,8 +176,8 @@ async fn read_device_info(app: AppHandle) -> String {
 }
 
 #[tauri::command]
-async fn read_gpt(app: AppHandle) {
-    let config = command_util::Config::setup_env();
+async fn read_gpt(app: AppHandle, is_debug: bool) {
+    let config = command_util::Config::setup_env(is_debug);
     if config.is_connect == false {
         let _ = app.emit("log_event", "port not available");
         return ();
@@ -233,9 +233,9 @@ async fn read_gpt(app: AppHandle) {
 }
 
 #[tauri::command]
-fn read_part(app: AppHandle, xml: &str, folder: &str)  -> String {
+fn read_part(app: AppHandle, xml: &str, folder: &str, is_debug: bool)  -> String {
     // Call the parsing function
-    let config = command_util::Config::setup_env();
+    let config = command_util::Config::setup_env(is_debug);
     if config.is_connect == false {
         let _ = app.emit("log_event", "Device not found");
         return "".to_string();
@@ -273,8 +273,8 @@ fn read_part(app: AppHandle, xml: &str, folder: &str)  -> String {
 }
 
 #[tauri::command]
-fn reboot_to_edl(app: AppHandle) {
-    let config = command_util::Config::setup_env();
+fn reboot_to_edl(app: AppHandle, is_debug: bool) {
+    let config = command_util::Config::setup_env(is_debug);
     if config.is_connect == false {
         let _ = app.emit("log_event", "port not available");
         return ();
@@ -295,8 +295,8 @@ fn reboot_to_edl(app: AppHandle) {
 }
 
 #[tauri::command]
-fn reboot_to_fastboot(app: AppHandle, xml: &str) {
-    let config = command_util::Config::setup_env();
+fn reboot_to_fastboot(app: AppHandle, xml: &str, is_debug: bool) {
+    let config = command_util::Config::setup_env(is_debug);
     if config.is_connect == false {
         let _ = app.emit("log_event", "port not available");
         return ();
@@ -330,8 +330,8 @@ fn reboot_to_fastboot(app: AppHandle, xml: &str) {
 }
 
 #[tauri::command]
-fn reboot_to_recovery(app: AppHandle, xml: &str) {
-    let config = command_util::Config::setup_env();
+fn reboot_to_recovery(app: AppHandle, xml: &str, is_debug: bool) {
+    let config = command_util::Config::setup_env(is_debug);
     if config.is_connect == false {
         let _ = app.emit("log_event", "port not available");
         return ();
@@ -366,8 +366,8 @@ fn reboot_to_recovery(app: AppHandle, xml: &str) {
 }
 
 #[tauri::command]
-fn reboot_to_system(app: AppHandle) {
-    let config = command_util::Config::setup_env();
+fn reboot_to_system(app: AppHandle, is_debug: bool) {
+    let config = command_util::Config::setup_env(is_debug);
     if config.is_connect == false {
         let _ = app.emit("log_event", "port not available");
         return ();
@@ -397,8 +397,8 @@ fn save_to_xml(app: AppHandle, path: &str, xml: &str) {
 }
 
 #[tauri::command]
-fn send_loader(app: AppHandle, loader: &str, digest: &str, sig: &str, native: bool)  -> String {
-    let config = command_util::Config::setup_env();
+fn send_loader(app: AppHandle, loader: &str, digest: &str, sig: &str, native: bool, is_debug: bool)  -> String {
+    let config = command_util::Config::setup_env(is_debug);
     if config.is_connect == false {
         let _ = app.emit("log_event", "port not available");
         return format!("port not available");
@@ -411,7 +411,7 @@ fn send_loader(app: AppHandle, loader: &str, digest: &str, sig: &str, native: bo
         };
         let _ = app.emit("log_event", &format!("Chip serial number: {}", client.get_chip_sn()));
         let _ = app.emit("log_event", &format!("OEM Private Key hash: {}", client.get_oem_key_hash()));
-        //client.send_loader(loader);
+        client.send_loader(loader);
     } else {
         let loader_str = r"13:".to_owned() + loader;
         let digest_str = r"--signeddigests=".to_owned() + digest;
@@ -465,8 +465,8 @@ fn send_loader(app: AppHandle, loader: &str, digest: &str, sig: &str, native: bo
 }
 
 #[tauri::command]
-async fn send_ping(app: AppHandle) {
-    let config = command_util::Config::setup_env();
+async fn send_ping(app: AppHandle, is_debug: bool) {
+    let config = command_util::Config::setup_env(is_debug);
     if config.is_connect == false {
         let _ = app.emit("log_event", "port not found");
         return;
@@ -595,8 +595,8 @@ fn stop_flashing(app: AppHandle, thread_state: State<Arc<Mutex<ThreadState>>>,) 
 }
 
 #[tauri::command]
-async fn switch_slot(app: AppHandle, slot: &str) -> Result<String, Error> {
-    let config = command_util::Config::setup_env();
+async fn switch_slot(app: AppHandle, slot: &str, is_debug: bool) -> Result<String, Error> {
+    let config = command_util::Config::setup_env(is_debug);
     if config.is_connect == false {
         let _ = app.emit("log_event", "Device not found");
         return Err(tauri::Error::AssetNotFound("Device not found".to_string()));
@@ -649,8 +649,8 @@ fn update_port() -> (String, String) {
 }
 
 #[tauri::command]
-fn write_from_xml(app: AppHandle, file_path:&str) -> String {
-    let config = command_util::Config::setup_env();
+fn write_from_xml(app: AppHandle, file_path:&str, is_debug: bool) -> String {
+    let config = command_util::Config::setup_env(is_debug);
     if config.is_connect == false {
         let _ = app.emit("log_event", "port not found");
         return format!("Port not available");
@@ -695,8 +695,8 @@ fn write_from_xml(app: AppHandle, file_path:&str) -> String {
 }
 
 #[tauri::command]
-fn write_part(app: AppHandle, xml: &str)  -> String {
-    let config = command_util::Config::setup_env();
+fn write_part(app: AppHandle, xml: &str, is_debug: bool)  -> String {
+    let config = command_util::Config::setup_env(is_debug);
     if config.is_connect == false {
         let _ = app.emit("log_event", "port not found");
         return format!("port not available");

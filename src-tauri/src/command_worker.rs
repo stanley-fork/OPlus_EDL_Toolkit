@@ -8,7 +8,7 @@ use std::sync::{Arc, Condvar, Mutex, mpsc};
 use std::thread;
 
 // Export
-pub use self::inner::{CommandItem, CommandQueue, QueueManager};
+pub use self::inner::{CommandItem};
 
 // inner module
 mod inner {

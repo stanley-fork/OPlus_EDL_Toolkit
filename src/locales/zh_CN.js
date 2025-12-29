@@ -68,5 +68,7 @@
 		useBuildIn: '使用內建fh_loader',
 		protectLun5: '保护 LUN 5',
 		enablePing: '防止超时重启',
+		storageType: '闪存类型：',
+		logLevel: '日志显示等级：',
 	}
 }

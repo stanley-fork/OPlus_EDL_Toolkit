@@ -68,5 +68,7 @@
 		useBuildIn: '使用內建fh_loader',
 		protectLun5: '保護 LUN 5',
 		enablePing: '防止超时重啟',
+		storageType: '儲存空間類型：',
+		logLevel: '日誌顯示等級：',
 	}
 }

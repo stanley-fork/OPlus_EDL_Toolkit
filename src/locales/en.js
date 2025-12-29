@@ -68,5 +68,7 @@ export default {
 		useBuildIn: 'Use the build-in fh_loader',
 		protectLun5: 'Protect LUN 5',
 		enablePing: 'Prevent timeout-induced restart',
+		storageType: 'Storage Type:',
+		logLevel: 'Log Level:',
 	}
 }
