@@ -67,5 +67,7 @@ export default {
 		useBuildIn: 'Использовать встроенный fh_loader',
 		protectLun5: 'Защита LUN 5',
 		enablePing: 'Предотвратить перезапуск из-за тайм-аута',
+		storageType: 'Тип хранилища:',
+		logLevel: 'Уровень отображения журнала:',
 	}
 }

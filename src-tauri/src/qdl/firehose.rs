@@ -214,6 +214,7 @@ pub fn firehose_write<T: QdlChan>(channel: &mut T, buf: &mut [u8]) -> anyhow::Re
 }
 
 /// Send a "Hello"-type packet to the Device
+#[allow(dead_code)]
 pub fn firehose_configure<T: QdlChan>(
     channel: &mut T,
     skip_storage_init: bool,
@@ -258,6 +259,7 @@ pub fn firehose_configure<T: QdlChan>(
 
 
 /// Test performance without sample data
+#[allow(dead_code)]
 pub fn firehose_benchmark<T: QdlChan>(
     channel: &mut T,
     trials: u32,
@@ -283,6 +285,7 @@ pub fn firehose_benchmark<T: QdlChan>(
 
 
 /// Do nothing, hopefully succesfully
+#[allow(dead_code)]
 pub fn firehose_nop<T: QdlChan>(channel: &mut T) -> anyhow::Result<()> {
     let mut xml = firehose_xml_setup("nop", &[("value", "ping")])?;
 
@@ -291,6 +294,7 @@ pub fn firehose_nop<T: QdlChan>(channel: &mut T) -> anyhow::Result<()> {
 
 /// Get information about the physical partition of a storage medium (e.g. LUN)
 /// Prints to \<log\> only
+#[allow(dead_code)]
 pub fn firehose_get_storage_info<T: QdlChan>(
     channel: &mut T,
     phys_part_idx: u8,
@@ -306,6 +310,7 @@ pub fn firehose_get_storage_info<T: QdlChan>(
 }
 
 /// Alter Device (TODO: or Host) storage
+#[allow(dead_code)]
 pub fn firehose_patch<T: QdlChan>(
     channel: &mut T,
     byte_off: u64,
@@ -337,6 +342,7 @@ pub fn firehose_patch<T: QdlChan>(
 
 /// Peek at memory
 /// Prints to \<log\> only
+#[allow(dead_code)]
 pub fn firehose_peek<T: QdlChan>(
     channel: &mut T,
     addr: u64,
@@ -364,6 +370,7 @@ pub fn firehose_peek<T: QdlChan>(
 /// Poke at memory
 /// This can lead to lock-ups and resets
 // TODO:x
+#[allow(dead_code)]
 pub fn firehose_poke<T: QdlChan>(
     channel: &mut T,
     addr: u64,
@@ -384,6 +391,7 @@ pub fn firehose_poke<T: QdlChan>(
 }
 
 /// Write to Device storage
+#[allow(dead_code)]
 pub fn firehose_program_storage<T: QdlChan>(
     channel: &mut T,
     data: &mut impl Read,
@@ -459,6 +467,7 @@ pub fn firehose_program_storage<T: QdlChan>(
 }
 
 /// Get a SHA256 digest of a portion of Device storage
+#[allow(dead_code)]
 pub fn firehose_checksum_storage<T: QdlChan>(
     channel: &mut T,
     num_sectors: usize,
@@ -489,6 +498,7 @@ pub fn firehose_checksum_storage<T: QdlChan>(
 }
 
 /// Read (sector-aligned) parts of storage.
+#[allow(dead_code)]
 pub fn firehose_read_storage(
     channel: &mut impl QdlChan,
     out: &mut impl Write,
@@ -553,6 +563,7 @@ pub fn firehose_read_storage(
 }
 
 /// Mark a physical storage partition as bootable
+#[allow(dead_code)]
 pub fn firehose_set_bootable<T: QdlChan>(channel: &mut T, drive_idx: u8) -> anyhow::Result<()> {
     let mut xml = firehose_xml_setup(
         "setbootablestoragedrive",
@@ -566,6 +577,7 @@ pub fn firehose_set_bootable<T: QdlChan>(channel: &mut T, drive_idx: u8) -> anyh
     )
 }
 
+#[allow(dead_code)]
 pub fn firehose_get_default_sector_size(t: &str) -> Option<usize> {
     match FirehoseStorageType::from_str(t).unwrap() {
         FirehoseStorageType::Emmc => Some(512),

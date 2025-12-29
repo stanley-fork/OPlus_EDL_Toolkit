@@ -23,6 +23,7 @@
     let portStatus = ref("EDL device not found");
     let portName = ref("N/A");
     let portNum = ref("");
+    let isDebug = ref(false);
     const selectedLang = ref('en');
 
     const { t, locale, availableLocales } = useI18n();
@@ -205,16 +206,16 @@
             }
         });
         const xmlContent = builder.build(jsObj);
-        await invoke("erase_part", { xml: xmlContent });
+        await invoke("erase_part", { xml: xmlContent, isDebug: isDebug.value });
     }
 
     async function readDeviceInfo() {
-        let result = await invoke("read_device_info");
+        let result = await invoke("read_device_info", { isDebug: isDebug.value });
         alert(result);
     }
 
     async function readGPT() {
-        await invoke("read_gpt");
+        await invoke("read_gpt", { isDebug: isDebug.value });
     }
 
     async function readPart() {
@@ -256,11 +257,11 @@
             }
         });
         const xmlContent = builder.build(jsObj);
-        await invoke("read_part", { xml: xmlContent, folder: imgSavingPath.value });
+        await invoke("read_part", { xml: xmlContent, folder: imgSavingPath.value, isDebug: isDebug.value });
     }
 
     async function rebootToEdl() {
-        await invoke("reboot_to_edl");
+        await invoke("reboot_to_edl", { isDebug: isDebug.value });
     }
 
     async function rebootToFastboot() {
@@ -317,7 +318,7 @@
         });
         if (isFound) {
             const xmlContent = builder.build(jsObj);
-            await invoke("reboot_to_fastboot", { xml: xmlContent });
+            await invoke("reboot_to_fastboot", { xml: xmlContent, isDebug: isDebug.value });
         } else {
             alert(t('reboot.miscNotFound'));
         }
@@ -377,14 +378,14 @@
         });
         if (isFound) {
             const xmlContent = builder.build(jsObj);
-            await invoke("reboot_to_recovery", { xml: xmlContent });
+            await invoke("reboot_to_recovery", { xml: xmlContent, isDebug: isDebug.value });
         } else {
             alert(t('reboot.miscNotFound'));
         }
     }
 
     async function rebootToSystem() {
-        await invoke("reboot_to_system");
+        await invoke("reboot_to_system", { isDebug: isDebug.value });
     }
 
     async function saveToXML() {
@@ -455,7 +456,7 @@
         let digest = document.getElementById('digestPathDisplay').value;
         let sig = document.getElementById('signPathDisplay').value;
 
-        await invoke("send_loader", { loader: loader, digest: digest, sig: sig, native: isBuildIn.value });
+        await invoke("send_loader", { loader: loader, digest: digest, sig: sig, native: isBuildIn.value, isDebug: isDebug.value });
     }
 
     async function sendPing() {
@@ -464,7 +465,7 @@
         }
 
         if (isEnablePing.value && isSentLoader && isCommandRunning == false) {
-            await invoke("send_ping");
+            await invoke("send_ping", { isDebug: isDebug.value });
         }
     }
 
@@ -494,7 +495,7 @@
 
     async function switchSlot(slot) {
         isDialogOpen.value = false;
-        await invoke("switch_slot", {slot: slot});
+        await invoke("switch_slot", { slot: slot, isDebug: isDebug.value });
     }
 
     async function updatePort() {
@@ -517,7 +518,7 @@
                 filters: [{ name: 'XML file', extensions: ['xml'] }],
             });
             if (file) {
-                await invoke("write_from_xml", { file_path: file });
+                await invoke("write_from_xml", { file_path: file, isDebug: isDebug.value });
             }
         } catch (error) {
             console.error('Error occurred while selecting a file:', error);
@@ -575,11 +576,10 @@
             }
         });
         const xmlContent = builder.build(jsObj);
-        await invoke("write_part", { xml: xmlContent });
+        await invoke("write_part", { xml: xmlContent, isDebug: isDebug.value });
     }
 
     window.onload = function () {
-        invoke("init");
 
         document.getElementById('btn_selectLoaderFile').addEventListener('click', async () => {
             try {
@@ -856,8 +856,14 @@
                             <label><input v-model="isEnablePing" type="checkbox" checked>{{ t('setting.enablePing') }}</label>
                         </div>
                         <div class="radio-group">
+                            <label>{{ t('setting.storageType') }}</label>
                             <label><input type="radio" name="storage" checked> UFS</label>
                             <label><input type="radio" name="storage"> EMMC</label>
+                        </div>
+                        <div class="radio-group">
+                            <label>{{ t('setting.logLevel') }}</label>
+                            <label><input type="radio" name="log" value="false" v-model="isDebug" checked> Info</label>
+                            <label><input type="radio" name="log" value="true" v-model="isDebug"> Debug</label>
                         </div>
                     </div>
                 </div>

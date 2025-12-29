@@ -314,6 +314,7 @@ pub fn sahara_send_cmd_data<T: Read + Write>(
     )
 }
 
+#[allow(dead_code)]
 pub fn sahara_reset<T: Read + Write>(channel: &mut T) -> Result<usize, anyhow::Error> {
     let data = ResetReq {};
 
