@@ -162,7 +162,7 @@ pub async fn send_loader(app: &AppHandle, loader: &str, digest: &str, sig: &str,
         let cmd = [&config.sahara_server_path_linux, "-p", &config.sahara_port_conn_str_linux, "-s", &loader];
         command_util::exec_cmd_with_msg("Send Loader", &app, &config, &cmd).await;
 
-        let cmd = [&config.sahara_server_path_linux, &config.fh_port_conn_str_linux, &digest, "--testvipimpact", "--noprompt", "--mainoutputdir=res"];
+        let cmd = [&*config.sahara_server_path_linux, &*config.fh_port_conn_str_linux, &digest, "--testvipimpact", "--noprompt", "--mainoutputdir=res"];
         command_util::exec_cmd_with_msg("Send Digest", &app, &config, &cmd).await;
 
         let cmd = [&config.sahara_server_path_linux, &config.fh_port_conn_str_linux, "--sendxml=res/transfercfg.xml", "--noprompt", "--mainoutputdir=res"];
@@ -171,7 +171,7 @@ pub async fn send_loader(app: &AppHandle, loader: &str, digest: &str, sig: &str,
         let cmd = [&config.sahara_server_path_linux, &config.fh_port_conn_str_linux, "--sendxml=res/verify.xml", "--noprompt", "--mainoutputdir=res"];
         command_util::exec_cmd_with_msg("Send Verify", &app, &config, &cmd).await;
 
-        let cmd = [&config.sahara_server_path_linux, &config.fh_port_conn_str_linux, &sig, "--testvipimpact", "--noprompt", "--mainoutputdir=res"];
+        let cmd = [&*config.sahara_server_path_linux, &*config.fh_port_conn_str_linux, &sig, "--testvipimpact", "--noprompt", "--mainoutputdir=res"];
         command_util::exec_cmd_with_msg("Send Sig", &app, &config, &cmd).await;
 
         let cmd = [&config.sahara_server_path_linux, &config.fh_port_conn_str_linux, "--sendxml=res/sha256init.xml", "--memoryname=ufs", "--zlpawarehost=1", "--noprompt", "--mainoutputdir=res"];
