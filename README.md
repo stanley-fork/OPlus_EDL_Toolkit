@@ -33,9 +33,9 @@ https://crowdin.com/project/oplus-edl-toolkit/
 <!-- CROWDIN-TRANSLATIONS-PROGRESS-ACTION-END -->
 
 ## 🎸 Demo 
-* Demo 1
+* Demo 1 (Windows)
   [![](https://markdown-videos-api.jorgenkh.no/youtube/hc4NhjbC9ks)](https://youtu.be/hc4NhjbC9ks)
-* Demo 2
+* Demo 2 (Linux)
   [![](https://markdown-videos-api.jorgenkh.no/youtube/7_4EPAL_uwY)](https://youtu.be/7_4EPAL_uwY)
 
 ## 🎉 Credit:
