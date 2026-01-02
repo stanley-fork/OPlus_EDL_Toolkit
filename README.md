@@ -34,7 +34,7 @@ https://crowdin.com/project/oplus-edl-toolkit/
 * Demo 1
   [![](https://markdown-videos-api.jorgenkh.no/youtube/hc4NhjbC9ks)](https://youtu.be/hc4NhjbC9ks)
 * Demo 2
-  https://youtu.be/7_4EPAL_uwY
+  [![](https://markdown-videos-api.jorgenkh.no/youtube/7_4EPAL_uwY)](https://youtu.be/7_4EPAL_uwY)
 
 ## 🎉 Credit:
 * Special thanks to 某贼@CoolAPK for the repost.
