@@ -56,7 +56,7 @@
         isDebug,
         changeSavingPath,
         sendPing,
-    } = useSettingPanelEventHandler(portName, isSentLoader);
+    } = useSettingPanelEventHandler(portName, isSentLoader, isCommandRunning);
 
     let {
         rebootToEdl,

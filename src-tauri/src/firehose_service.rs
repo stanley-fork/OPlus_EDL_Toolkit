@@ -414,7 +414,7 @@ pub async fn reboot_to_system(app: &AppHandle, config: &Config) {
             "--skip_configure",
             "--mainoutputdir=res",
         ];
-        let _ = command_util::exec_cmd_with_msg("Reboot to EDL", &app, &config, &cmd).await;
+        let _ = command_util::exec_cmd_with_msg("Reboot to System", &app, &config, &cmd).await;
     }
     #[cfg(target_os = "linux")]
     {

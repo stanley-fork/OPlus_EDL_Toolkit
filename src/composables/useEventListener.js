@@ -9,7 +9,7 @@ export function useEventListener(tableData) {
     let isDialogOpen = ref(false);
     let isRunning = ref(false);
     let isCommandRunning = false;
-    let isSentLoader = false;
+    let isSentLoader = ref(false);
     let percentage = ref(0);
 
     watch(isDialogOpen, (newVal) => {
@@ -37,7 +37,7 @@ export function useEventListener(tableData) {
     });
 
     listen("update_loader_status", (payload) => {
-        isSentLoader = payload.payload;
+        isSentLoader.value = payload.payload;
     });
 
     listen("update_percentage", (payload) => {

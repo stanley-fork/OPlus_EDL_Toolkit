@@ -23,6 +23,7 @@ export function useOperationEventHandler(imgSavingPath, isBuildIn, isDialogOpen,
                 const num = item.lun;
                 const partname = item.partName;
                 let part_start_sector = item.partStart;
+                const part_num = item.partNum;
 
                 parts.push({
                     "@_SECTOR_SIZE_IN_BYTES": "4096",

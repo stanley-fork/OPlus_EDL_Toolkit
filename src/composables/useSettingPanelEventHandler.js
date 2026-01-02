@@ -2,7 +2,7 @@ import { ref } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 
-export function useSettingPanelEventHandler(portName, isSentLoader) {
+export function useSettingPanelEventHandler(portName, isSentLoader, isCommandRunning) {
 
     let imgSavingPath = ref("img/");
     let isBuildIn = ref(false);
@@ -26,10 +26,10 @@ export function useSettingPanelEventHandler(portName, isSentLoader) {
 
     async function sendPing() {
         if (portName.value == "N/A") {
-            isSentLoader = false;
+            isSentLoader.value = false;
         }
 
-        if (isEnablePing.value && isSentLoader && isCommandRunning == false) {
+        if (isEnablePing.value && isSentLoader.value && isCommandRunning == false) {
             await invoke("send_ping", { isDebug: isDebug.value });
         }
     }
