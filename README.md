@@ -30,6 +30,12 @@ https://crowdin.com/project/oplus-edl-toolkit/
 <!-- CROWDIN-TRANSLATIONS-PROGRESS-ACTION-START -->
 <!-- CROWDIN-TRANSLATIONS-PROGRESS-ACTION-END -->
 
+## 🎸 Demo 
+* Demo 1
+  [![](https://markdown-videos-api.jorgenkh.no/youtube/hc4NhjbC9ks)](https://youtu.be/hc4NhjbC9ks)
+* Demo 2
+  https://youtu.be/7_4EPAL_uwY
+
 ## 🎉 Credit:
 * Special thanks to 某贼@CoolAPK for the repost.
 * [linux-msm/qdl](https://github.com/linux-msm/qdl) for the open C implementation of fh_loader
