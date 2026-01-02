@@ -5,12 +5,14 @@ An Oplus EDL toolkit developed with Rust.
 ## 📱 Features:
 - Supports free partition reading and writing.
 - Supports GPT parsing and XML file generation.
-- Multiple language support.
+- Multiple language support (English, Russian, Simplified Chinese, Traditional Chinese).
+- Query device information
+- Set active slot
 
 ## ⏫️ Todo:
 - Add support for more languages
-- Linux platform support
-- Support official EDL package
+- Linux platform support （Support sending loader and reading partitions; currently, writing to partitions is temporarily unavailable.）
+- Support official EDL package (Already implemented but not yet tested.)
 
 ## ⚠️ Notes:
 - Requirements: You need to provide your own Loader (Firehose) + digest + sign files.
