@@ -179,7 +179,7 @@ async fn exec_cmd(cmd: &[&str], current_dir: Option<&Path>) -> String {
                 println!("{}", String::from_utf8_lossy(&output.stdout).to_string());
                 String::from_utf8_lossy(&output.stdout).to_string()
             } else {
-                let err_msg = String::from_utf8_lossy(&output.stderr).to_string();
+                let err_msg = String::from_utf8_lossy(&output.stdout).to_string();
                 println!("[Error]: {}", err_msg);
                 format!("[Error]: {}", err_msg)
             }
